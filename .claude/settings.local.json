@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__baseball-mcp__search_player",
+      "Bash(git add:*)"
+    ],
+    "deny": []
+  }
+}
