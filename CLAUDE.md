@@ -7,15 +7,23 @@ This is an MCP (Model Context Protocol) server that provides access to Major Lea
 ## Current Implementation Status
 
 ### Completed Features
-- Basic MCP server setup with Python
-- Player search functionality using MLB Stats API
-- Comprehensive player data retrieval including:
-  - Personal information (name, age, birthplace, etc.)
-  - Physical attributes (height, weight)
-  - Position and jersey number
-  - Career statistics
-  - Team affiliations
-  - Active/retired status
+- Complete MCP server implementation with Python
+- Comprehensive MLB Stats API integration with all major endpoints
+- Player functionality:
+  - Search players by name
+  - Get detailed player information by ID
+  - Retrieve player statistics (career, season, game logs)
+- Team functionality:
+  - Search and list all MLB teams
+  - Get detailed team information
+  - View team rosters (active, 40-man, full season)
+- Game functionality:
+  - View game schedules with flexible date filtering
+  - Get detailed game boxscores
+  - Access live game feeds for real-time data
+- League functionality:
+  - View current standings by league/division
+  - Support for different standings types
 
 ### Technical Details
 - **Language**: Python 3.12
@@ -50,41 +58,57 @@ baseball-mcp/
 ## Future Enhancements
 
 ### Potential Features
-1. **Team Data**: Add tools for retrieving team information and rosters
-2. **Game Statistics**: Implement game scores and schedules
-3. **Season Stats**: Add season-by-season player statistics
-4. **Advanced Metrics**: Include sabermetric statistics (WAR, OPS+, etc.)
-5. **Historical Data**: Access to historical seasons and records
-6. **Live Game Data**: Real-time game updates and play-by-play
+1. **Advanced Metrics**: Include sabermetric statistics (WAR, OPS+, FIP, etc.)
+2. **Historical Data**: Enhanced historical season comparisons
+3. **Playoff Data**: Specialized playoff/postseason statistics
+4. **Draft Data**: MLB draft information and history
+5. **Injury Reports**: Player injury status and history
+6. **Transactions**: Trade and roster move tracking
+7. **Umpire Data**: Umpire statistics and tendencies
+8. **Weather Data**: Game-time weather conditions
+9. **Venue Details**: Detailed ballpark information
+10. **Media Content**: Game highlights and video clips
 
 ### Technical Improvements
-- Add caching to reduce API calls
-- Implement rate limiting protection
-- Add comprehensive error handling
-- Create unit tests for all components
-- Add logging for debugging
+- Implement intelligent caching with TTL
+- Add rate limiting protection
+- Create comprehensive unit and integration tests
+- Add structured logging with log levels
+- Implement request retry logic with exponential backoff
+- Add request timeout handling
+- Create data validation schemas
+- Add performance monitoring
 
 ## MCP Integration Notes
 
 ### Current Tools
-- `search_player`: Searches for players by name and returns detailed information
+1. **Player Tools**:
+   - `search_player`: Search for players by name
+   - `get_player`: Get detailed player information by ID
+   - `get_player_stats`: Retrieve player statistics
+
+2. **Team Tools**:
+   - `search_teams`: Search and filter MLB teams
+   - `get_team`: Get detailed team information
+   - `get_team_roster`: View team rosters
+
+3. **Game Tools**:
+   - `get_schedule`: View game schedules
+   - `get_game_info`: Get game boxscore data
+   - `get_live_game_feed`: Access live game data
+
+4. **League Tools**:
+   - `get_standings`: View league/division standings
 
 ### Tool Response Format
-Each player result includes:
-- ID and API link
-- Full name and nicknames
-- Birth information
-- Physical attributes
-- Position details
-- Batting/pitching preferences
-- MLB debut date
-- Active status
+All tools return formatted, human-readable responses with relevant data organized by category. Error handling is implemented for all API calls.
 
 ## Known Limitations
-- Currently only supports player search (no team or game data)
-- No caching mechanism (each search hits the API)
+- No caching mechanism (each request hits the API)
 - Limited to data available through MLB Stats API
 - No authentication required (public API)
+- Rate limiting not implemented (relies on API's built-in limits)
+- No webhook support for real-time updates
 
 ## Debugging Tips
 - Check API responses in `data_utils.py` for troubleshooting
