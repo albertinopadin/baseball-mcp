@@ -12,6 +12,7 @@ from data_utils import (
     format_live_game_data
 )
 
+VERSION = "0.0.2"
 BASE_URL = "https://statsapi.mlb.com/api/v1"
 USER_AGENT = "baseball-mcp-server/1.0"
 
@@ -316,6 +317,6 @@ async def get_live_game_feed(game_pk: int) -> str:
 
 
 if __name__ == "__main__":
-    print("Baseball Stats MCP Server v0.0.1")
+    print(f"Baseball Stats MCP Server v{VERSION}")
     # Initialize and run the server
     mcp.run(transport='stdio')

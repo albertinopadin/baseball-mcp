@@ -4,7 +4,15 @@
       "mcp__baseball-mcp__search_player",
       "Bash(git add:*)",
       "Bash(jq:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "mcp__baseball-mcp__get_schedule",
+      "mcp__baseball-mcp__get_game_info",
+      "mcp__baseball-mcp__get_live_game_feed",
+      "mcp__baseball-mcp__get_team_roster",
+      "mcp__baseball-mcp__get_player_stats",
+      "Bash(pkill:*)",
+      "Bash(true)",
+      "Bash(uv run:*)"
     ],
     "deny": []
   }

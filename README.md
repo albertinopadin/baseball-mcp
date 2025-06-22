@@ -49,7 +49,7 @@ uv sync
 ### Running the MCP Server
 
 ```bash
-uv run baseball_mcp_server.py
+uv run src/baseball_mcp_server.py
 ```
 
 ### Available Tools
@@ -254,9 +254,17 @@ Get live feed data for an ongoing game.
 ## Development
 
 The project structure:
-- `baseball_mcp_server.py` - Main MCP server implementation
-- `data_utils.py` - Utilities for interacting with MLB Stats API
-- `pyproject.toml` - Project configuration and dependencies
+```
+baseball-mcp/
+├── src/
+│   ├── baseball_mcp_server.py  # Main MCP server implementation
+│   └── data_utils.py          # Utilities for interacting with MLB Stats API
+├── test/
+│   └── test_dodgers_stats.py  # Example test script
+├── pyproject.toml             # Project configuration and dependencies
+├── README.md                  # User documentation
+└── CLAUDE.md                  # Developer documentation
+```
 
 ## API Reference
 

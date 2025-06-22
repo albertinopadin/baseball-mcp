@@ -111,8 +111,10 @@ def format_player_stats(stats: list) -> str:
             # Format based on stat type
             if 'avg' in stat_data:  # Hitting stats
                 stat_lines.append(f"""  Season: {season} - Team: {team_name}
-    AVG: {stat_data.get('avg', 'N/A')} | OBP: {stat_data.get('obp', 'N/A')} | SLG: {stat_data.get('slg', 'N/A')} | OPS: {stat_data.get('ops', 'N/A')}
-    HR: {stat_data.get('homeRuns', 0)} | RBI: {stat_data.get('rbi', 0)} | H: {stat_data.get('hits', 0)} | SO: {stat_data.get('strikeOuts', 0)}""")
+    G: {stat_data.get('gamesPlayed', 0)} | AB: {stat_data.get('atBats', 0)} | R: {stat_data.get('runs', 0)} | H: {stat_data.get('hits', 0)}
+    2B: {stat_data.get('doubles', 0)} | 3B: {stat_data.get('triples', 0)} | HR: {stat_data.get('homeRuns', 0)} | RBI: {stat_data.get('rbi', 0)}
+    BB: {stat_data.get('baseOnBalls', 0)} | SO: {stat_data.get('strikeOuts', 0)} | SB: {stat_data.get('stolenBases', 0)} | CS: {stat_data.get('caughtStealing', 0)}
+    AVG: {stat_data.get('avg', 'N/A')} | OBP: {stat_data.get('obp', 'N/A')} | SLG: {stat_data.get('slg', 'N/A')} | OPS: {stat_data.get('ops', 'N/A')}""")
             elif 'era' in stat_data:  # Pitching stats
                 stat_lines.append(f"""  Season: {season} - Team: {team_name}
     W-L: {stat_data.get('wins', 0)}-{stat_data.get('losses', 0)} | ERA: {stat_data.get('era', 'N/A')} | WHIP: {stat_data.get('whip', 'N/A')}

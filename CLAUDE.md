@@ -34,12 +34,15 @@ This is an MCP (Model Context Protocol) server that provides access to Major Lea
 ### Project Structure
 ```
 baseball-mcp/
-├── baseball_mcp_server.py  # Main MCP server implementation
-├── data_utils.py          # MLB Stats API utilities
-├── pyproject.toml         # Project configuration
-├── uv.lock               # Dependency lock file
-├── README.md             # User documentation
-└── CLAUDE.md            # This file
+├── src/
+│   ├── baseball_mcp_server.py  # Main MCP server implementation
+│   └── data_utils.py          # MLB Stats API utilities
+├── test/
+│   └── test_dodgers_stats.py  # Example test script for Dodgers stats
+├── pyproject.toml             # Project configuration
+├── uv.lock                    # Dependency lock file
+├── README.md                  # User documentation
+└── CLAUDE.md                  # This file
 ```
 
 ## Development Guidelines
@@ -111,7 +114,13 @@ All tools return formatted, human-readable responses with relevant data organize
 - No webhook support for real-time updates
 
 ## Debugging Tips
-- Check API responses in `data_utils.py` for troubleshooting
-- Verify MCP protocol compliance in `baseball_mcp_server.py`
+- Check API responses in `src/data_utils.py` for troubleshooting
+- Verify MCP protocol compliance in `src/baseball_mcp_server.py`
 - Use logging to track API calls and responses
 - Test with Claude Desktop's MCP debugging tools
+- Run example test scripts in `test/` directory
+
+## Version History
+- v0.0.3: Reorganized project structure with src/ and test/ directories
+- v0.0.2: Added comprehensive MLB Stats API integration
+- v0.0.1: Initial MCP server implementation
