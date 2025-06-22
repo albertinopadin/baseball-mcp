@@ -314,11 +314,15 @@ The project structure:
 baseball-mcp/
 ├── src/
 │   ├── baseball_mcp_server.py  # Main MCP server implementation
+│   ├── mlb_stats_api.py       # MLB Stats API client functions
+│   ├── statcast_api.py        # Statcast/pybaseball client functions
 │   ├── data_utils.py          # Utilities for formatting MLB data
 │   └── cache_utils.py         # Caching mechanism for API responses
 ├── test/
 │   ├── test_dodgers_stats.py  # Example test script
-│   └── test_statcast.py       # Statcast tools test script
+│   ├── test_statcast.py       # Statcast tools test script
+│   ├── test_mlb_stats_api.py  # Unit tests for MLB Stats API
+│   └── test_statcast_api.py   # Unit tests for Statcast API
 ├── pyproject.toml             # Project configuration and dependencies
 ├── README.md                  # User documentation
 └── CLAUDE.md                  # Developer documentation

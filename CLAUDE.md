@@ -44,12 +44,16 @@ This is an MCP (Model Context Protocol) server that provides access to Major Lea
 ```
 baseball-mcp/
 ├── src/
-│   ├── baseball_mcp_server.py  # Main MCP server implementation
+│   ├── baseball_mcp_server.py  # Main MCP server (tool definitions only)
+│   ├── mlb_stats_api.py       # MLB Stats API client functions
+│   ├── statcast_api.py        # Statcast/pybaseball client functions
 │   ├── data_utils.py          # Data formatting utilities
 │   └── cache_utils.py         # Caching mechanism
 ├── test/
 │   ├── test_dodgers_stats.py  # Example test script for Dodgers stats
-│   └── test_statcast.py       # Statcast functionality tests
+│   ├── test_statcast.py       # Statcast functionality tests
+│   ├── test_mlb_stats_api.py  # Unit tests for MLB Stats API
+│   └── test_statcast_api.py   # Unit tests for Statcast API
 ├── .cache/                    # Cache directory (gitignored)
 ├── pyproject.toml             # Project configuration
 ├── uv.lock                    # Dependency lock file
@@ -64,6 +68,7 @@ baseball-mcp/
 - Use type hints for function parameters and return values
 - Keep functions focused and single-purpose
 - Handle API errors gracefully
+- Maintain separation of concerns (MCP tools, API clients, utilities)
 
 ### Testing Approach
 - Test with various player names (active, retired, partial matches)
@@ -128,6 +133,7 @@ All tools return formatted, human-readable responses with relevant data organize
 - No authentication required (public API)
 - Rate limiting not implemented (relies on API's built-in limits)
 - No webhook support for real-time updates
+- DataFrames from pybaseball are not cached (JSON serialization limitation)
 
 ## Debugging Tips
 - Check API responses in `src/data_utils.py` for troubleshooting
@@ -137,6 +143,7 @@ All tools return formatted, human-readable responses with relevant data organize
 - Run example test scripts in `test/` directory
 
 ## Version History
+- v0.0.5: Refactored code into separate modules (mlb_stats_api.py, statcast_api.py), improved testing
 - v0.0.4: Added Statcast data integration with pybaseball, implemented caching system
 - v0.0.3: Reorganized project structure with src/ and test/ directories
 - v0.0.2: Added comprehensive MLB Stats API integration

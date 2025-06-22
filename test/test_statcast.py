@@ -8,7 +8,7 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from baseball_mcp_server import get_player_statcast_batting, get_player_statcast_pitching
+from statcast_api import get_player_statcast_batting, get_player_statcast_pitching
 
 
 async def test_statcast_batting():
