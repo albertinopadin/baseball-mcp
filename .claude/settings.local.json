@@ -12,7 +12,9 @@
       "mcp__baseball-mcp__get_player_stats",
       "Bash(pkill:*)",
       "Bash(true)",
-      "Bash(uv run:*)"
+      "Bash(uv run:*)",
+      "mcp__sequential-thinking__sequentialthinking",
+      "WebFetch(domain:baseballsavant.mlb.com)"
     ],
     "deny": []
   }

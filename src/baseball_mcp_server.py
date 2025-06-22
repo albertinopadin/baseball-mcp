@@ -17,6 +17,7 @@ try:
     VERSION = version("baseball-mcp")
 except Exception:
     VERSION = "0.0.3"  # Fallback version
+    
 BASE_URL = "https://statsapi.mlb.com/api/v1"
 USER_AGENT = "baseball-mcp-server/1.0"
 
