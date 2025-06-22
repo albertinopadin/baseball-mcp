@@ -330,7 +330,11 @@ baseball-mcp/
 
 ## Examples
 
-![Example of getting the Dodgers offensive stats as of June 21 2025](DodgersStatsJun212025.png)
+![Example of getting the Dodgers offensive stats as of June 21 2025](examples/DodgersStatsJun212025.png)
+
+![Example of Aaron Judge's hard hit rate data](examples/AaronJudgeHardHitRate.png)
+
+![Example of Clayton Kershaw's spin rate data](examples/ClaytonKershawSpinRate.png)
 
 ## Caching
 
