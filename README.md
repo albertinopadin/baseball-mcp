@@ -266,6 +266,10 @@ baseball-mcp/
 └── CLAUDE.md                  # Developer documentation
 ```
 
+## Examples
+
+![Example of getting the Dodgers offensive stats as of June 21 2025](DodgersStatsJun212025.png)
+
 ## API Reference
 
 This server uses the official MLB Stats API (statsapi.mlb.com) to retrieve player data.
