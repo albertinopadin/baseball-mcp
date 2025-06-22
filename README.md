@@ -13,6 +13,8 @@ This MCP server provides comprehensive access to MLB data through the official M
 - Retrieve detailed player information by ID
 - Get comprehensive player statistics (career, season, game logs)
 - Access batting, pitching, and fielding statistics
+- **NEW: Get Statcast batting metrics** (exit velocity, launch angle, barrel rate)
+- **NEW: Get Statcast pitching metrics** (spin rate, velocity, pitch movement)
 
 ### Team Data
 - Search and browse all MLB teams
@@ -245,6 +247,60 @@ Get live feed data for an ongoing game.
 }
 ```
 
+#### `get_player_statcast_batting`
+Get Statcast batting metrics for a player including exit velocity, launch angle, and barrel rate.
+
+**Parameters:**
+- `player_name` (string, required): Full name of the player (e.g., "Aaron Judge")
+- `start_date` (string, optional): Start date in YYYY-MM-DD format
+- `end_date` (string, optional): End date in YYYY-MM-DD format
+- `season` (string, optional): Season year (e.g., "2024")
+
+**Example:**
+```json
+{
+  "tool": "get_player_statcast_batting",
+  "arguments": {
+    "player_name": "Aaron Judge",
+    "season": "2024"
+  }
+}
+```
+
+**Returns:**
+- Average and max exit velocity
+- Launch angle statistics
+- Barrel rate and hard hit rate
+- Expected batting average (xBA) and wOBA
+- Pitch type breakdown
+
+#### `get_player_statcast_pitching`
+Get Statcast pitching metrics for a player including spin rate, velocity, and pitch movement.
+
+**Parameters:**
+- `player_name` (string, required): Full name of the player (e.g., "Gerrit Cole")
+- `start_date` (string, optional): Start date in YYYY-MM-DD format
+- `end_date` (string, optional): End date in YYYY-MM-DD format
+- `season` (string, optional): Season year (e.g., "2024")
+
+**Example:**
+```json
+{
+  "tool": "get_player_statcast_pitching",
+  "arguments": {
+    "player_name": "Gerrit Cole",
+    "season": "2024"
+  }
+}
+```
+
+**Returns:**
+- Pitch velocity (average and max) by pitch type
+- Spin rate by pitch type
+- Pitch movement (horizontal and vertical break)
+- Pitch usage percentages
+- Whiff rate
+
 ## Requirements
 
 - Python 3.12+
@@ -258,9 +314,11 @@ The project structure:
 baseball-mcp/
 ├── src/
 │   ├── baseball_mcp_server.py  # Main MCP server implementation
-│   └── data_utils.py          # Utilities for interacting with MLB Stats API
+│   ├── data_utils.py          # Utilities for formatting MLB data
+│   └── cache_utils.py         # Caching mechanism for API responses
 ├── test/
-│   └── test_dodgers_stats.py  # Example test script
+│   ├── test_dodgers_stats.py  # Example test script
+│   └── test_statcast.py       # Statcast tools test script
 ├── pyproject.toml             # Project configuration and dependencies
 ├── README.md                  # User documentation
 └── CLAUDE.md                  # Developer documentation
@@ -270,6 +328,15 @@ baseball-mcp/
 
 ![Example of getting the Dodgers offensive stats as of June 21 2025](DodgersStatsJun212025.png)
 
+## Caching
+
+The server implements a file-based caching mechanism to improve performance:
+- Statcast data is cached for 24 hours by default
+- Cache files are stored in a `.cache` directory
+- Subsequent requests for the same data will be served from cache
+
 ## API Reference
 
-This server uses the official MLB Stats API (statsapi.mlb.com) to retrieve player data.
+This server uses:
+- **MLB Stats API** (statsapi.mlb.com) for player, team, and game data
+- **Baseball Savant** (via pybaseball) for Statcast metrics including exit velocity, launch angle, and spin rate

@@ -251,3 +251,110 @@ def format_live_game_data(data: dict) -> str:
     Balls: {linescore.get('balls', 0)}
     Strikes: {linescore.get('strikes', 0)}
     """
+
+
+def format_statcast_batting_data(df) -> str:
+    """Format Statcast batting data into a readable string."""
+    if df is None or df.empty:
+        return "No Statcast batting data available."
+    
+    # Calculate aggregated metrics
+    total_batted_balls = len(df[df['launch_speed'].notna()])
+    
+    if total_batted_balls == 0:
+        return "No batted ball data available for this period."
+    
+    avg_exit_velo = df['launch_speed'].mean()
+    avg_launch_angle = df['launch_angle'].mean()
+    max_exit_velo = df['launch_speed'].max()
+    
+    # Calculate barrel rate (exit velo >= 98 mph and launch angle between 26-30 degrees)
+    barrels = df[(df['launch_speed'] >= 98) & (df['launch_angle'].between(26, 30))]
+    barrel_rate = (len(barrels) / total_batted_balls) * 100 if total_batted_balls > 0 else 0
+    
+    # Calculate hard hit rate (exit velo >= 95 mph)
+    hard_hit = df[df['launch_speed'] >= 95]
+    hard_hit_rate = (len(hard_hit) / total_batted_balls) * 100 if total_batted_balls > 0 else 0
+    
+    # Expected stats
+    xba = df['estimated_ba_using_speedangle'].mean() if 'estimated_ba_using_speedangle' in df.columns else None
+    xwoba = df['estimated_woba_using_speedangle'].mean() if 'estimated_woba_using_speedangle' in df.columns else None
+    
+    # Get pitch type breakdown
+    pitch_results = df.groupby('pitch_name').size().sort_values(ascending=False)
+    
+    result = f"""Statcast Batting Metrics:
+    
+    Batted Ball Data ({total_batted_balls} batted balls):
+    Average Exit Velocity: {avg_exit_velo:.1f} mph
+    Max Exit Velocity: {max_exit_velo:.1f} mph
+    Average Launch Angle: {avg_launch_angle:.1f}°
+    
+    Quality of Contact:
+    Barrel Rate: {barrel_rate:.1f}%
+    Hard Hit Rate: {hard_hit_rate:.1f}%"""
+    
+    if xba is not None:
+        result += f"\n    Expected Batting Average: {xba:.3f}"
+    if xwoba is not None:
+        result += f"\n    Expected wOBA: {xwoba:.3f}"
+    
+    result += "\n\n    Pitches Faced:"
+    for pitch, count in pitch_results.head(5).items():
+        if pitch and str(pitch) != 'nan':
+            result += f"\n    {pitch}: {count}"
+    
+    return result
+
+
+def format_statcast_pitching_data(df) -> str:
+    """Format Statcast pitching data into a readable string."""
+    if df is None or df.empty:
+        return "No Statcast pitching data available."
+    
+    # Get pitch type breakdown
+    pitch_types = df.groupby('pitch_name').agg({
+        'release_speed': ['count', 'mean', 'max'],
+        'release_spin_rate': 'mean',
+        'pfx_x': 'mean',  # horizontal movement
+        'pfx_z': 'mean',  # vertical movement
+    }).round(1)
+    
+    # Overall stats
+    total_pitches = len(df)
+    avg_velocity = df['release_speed'].mean()
+    avg_spin = df['release_spin_rate'].mean()
+    
+    # Whiff rate calculation
+    swings = df[df['description'].str.contains('swing|foul', case=False, na=False)]
+    whiffs = swings[swings['description'].str.contains('swing.*miss', case=False, na=False)]
+    whiff_rate = (len(whiffs) / len(swings)) * 100 if len(swings) > 0 else 0
+    
+    result = f"""Statcast Pitching Metrics:
+    
+    Overall ({total_pitches} pitches):
+    Average Velocity: {avg_velocity:.1f} mph
+    Average Spin Rate: {avg_spin:.0f} rpm
+    Whiff Rate: {whiff_rate:.1f}%
+    
+    Pitch Arsenal:"""
+    
+    for pitch_type in pitch_types.index:
+        if pitch_type and str(pitch_type) != 'nan':
+            count = pitch_types.loc[pitch_type, ('release_speed', 'count')]
+            avg_velo = pitch_types.loc[pitch_type, ('release_speed', 'mean')]
+            max_velo = pitch_types.loc[pitch_type, ('release_speed', 'max')]
+            avg_spin = pitch_types.loc[pitch_type, ('release_spin_rate', 'mean')]
+            h_break = pitch_types.loc[pitch_type, ('pfx_x', 'mean')]
+            v_break = pitch_types.loc[pitch_type, ('pfx_z', 'mean')]
+            
+            usage_pct = (count / total_pitches) * 100
+            
+            result += f"""
+    
+    {pitch_type} ({usage_pct:.1f}% usage):
+        Velocity: {avg_velo:.1f} mph (max: {max_velo:.1f} mph)
+        Spin Rate: {avg_spin:.0f} rpm
+        Movement: {h_break:.1f}" H, {v_break:.1f}" V"""
+    
+    return result

@@ -1,6 +1,8 @@
 from typing import Any
 import httpx
 from mcp.server.fastmcp import FastMCP
+from datetime import datetime, timedelta
+import asyncio
 from data_utils import (
     format_player_data,
     format_team_data,
@@ -9,8 +11,19 @@ from data_utils import (
     format_schedule_data,
     format_game_data,
     format_standings_data,
-    format_live_game_data
+    format_live_game_data,
+    format_statcast_batting_data,
+    format_statcast_pitching_data
 )
+from cache_utils import cache_result
+
+# Import pybaseball for Statcast data
+try:
+    from pybaseball import statcast_batter, statcast_pitcher, playerid_lookup
+    import pandas as pd
+    PYBASEBALL_AVAILABLE = True
+except ImportError:
+    PYBASEBALL_AVAILABLE = False
 
 try:
     from importlib.metadata import version
@@ -319,6 +332,162 @@ async def get_live_game_feed(game_pk: int) -> str:
         return f"Unable to retrieve live feed for game {game_pk}."
     
     return format_live_game_data(data)
+
+
+@mcp.tool()
+async def get_player_statcast_batting(
+    player_name: str,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    season: str | None = None
+) -> str:
+    """Get Statcast batting metrics for a player including exit velocity, launch angle, and barrel rate.
+    
+    Args:
+        player_name: Full name of the player (e.g., "Aaron Judge")
+        start_date: Start date in YYYY-MM-DD format (optional)
+        end_date: End date in YYYY-MM-DD format (optional)
+        season: Season year (e.g., "2024"). If not provided with dates, defaults to current season
+    """
+    if not PYBASEBALL_AVAILABLE:
+        return "Statcast data is not available. The pybaseball library is not installed."
+    
+    # Set default dates if not provided
+    if not start_date and not end_date:
+        if season:
+            start_date = f"{season}-03-20"
+            end_date = f"{season}-10-05"
+        else:
+            # Default to current season
+            current_year = datetime.now().year
+            start_date = f"{current_year}-03-20"
+            end_date = datetime.now().strftime("%Y-%m-%d")
+    
+    try:
+        # Parse the player name
+        names = player_name.strip().split()
+        if len(names) < 2:
+            return f"Please provide a full name (first and last name) for {player_name}"
+        
+        first_name = names[0]
+        last_name = " ".join(names[1:])  # Handle names with multiple parts
+        
+        # Look up player ID using pybaseball
+        # Run in thread pool to avoid blocking
+        loop = asyncio.get_event_loop()
+        player_lookup = await loop.run_in_executor(
+            None, 
+            playerid_lookup, 
+            last_name, 
+            first_name
+        )
+        
+        if player_lookup.empty:
+            return f"No player found matching '{player_name}'"
+        
+        # Get the first match (most relevant)
+        player_id = int(player_lookup.iloc[0]['key_mlbam'])
+        
+        # Cache the statcast data retrieval
+        @cache_result(ttl_hours=24)
+        def get_cached_statcast_batter(player_id: int, start: str, end: str):
+            return statcast_batter(start, end, player_id)
+        
+        # Get Statcast data
+        statcast_data = await loop.run_in_executor(
+            None,
+            get_cached_statcast_batter,
+            player_id,
+            start_date,
+            end_date
+        )
+        
+        if statcast_data is None or statcast_data.empty:
+            return f"No Statcast batting data available for {player_name} from {start_date} to {end_date}"
+        
+        # Format the data
+        return format_statcast_batting_data(statcast_data)
+        
+    except Exception as e:
+        return f"Error retrieving Statcast data for {player_name}: {str(e)}"
+
+
+@mcp.tool()
+async def get_player_statcast_pitching(
+    player_name: str,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    season: str | None = None
+) -> str:
+    """Get Statcast pitching metrics for a player including spin rate, velocity, and pitch movement.
+    
+    Args:
+        player_name: Full name of the player (e.g., "Gerrit Cole")
+        start_date: Start date in YYYY-MM-DD format (optional)
+        end_date: End date in YYYY-MM-DD format (optional)
+        season: Season year (e.g., "2024"). If not provided with dates, defaults to current season
+    """
+    if not PYBASEBALL_AVAILABLE:
+        return "Statcast data is not available. The pybaseball library is not installed."
+    
+    # Set default dates if not provided
+    if not start_date and not end_date:
+        if season:
+            start_date = f"{season}-03-20"
+            end_date = f"{season}-10-05"
+        else:
+            # Default to current season
+            current_year = datetime.now().year
+            start_date = f"{current_year}-03-20"
+            end_date = datetime.now().strftime("%Y-%m-%d")
+    
+    try:
+        # Parse the player name
+        names = player_name.strip().split()
+        if len(names) < 2:
+            return f"Please provide a full name (first and last name) for {player_name}"
+        
+        first_name = names[0]
+        last_name = " ".join(names[1:])  # Handle names with multiple parts
+        
+        # Look up player ID using pybaseball
+        # Run in thread pool to avoid blocking
+        loop = asyncio.get_event_loop()
+        player_lookup = await loop.run_in_executor(
+            None, 
+            playerid_lookup, 
+            last_name, 
+            first_name
+        )
+        
+        if player_lookup.empty:
+            return f"No player found matching '{player_name}'"
+        
+        # Get the first match (most relevant)
+        player_id = int(player_lookup.iloc[0]['key_mlbam'])
+        
+        # Cache the statcast data retrieval
+        @cache_result(ttl_hours=24)
+        def get_cached_statcast_pitcher(player_id: int, start: str, end: str):
+            return statcast_pitcher(start, end, player_id)
+        
+        # Get Statcast data
+        statcast_data = await loop.run_in_executor(
+            None,
+            get_cached_statcast_pitcher,
+            player_id,
+            start_date,
+            end_date
+        )
+        
+        if statcast_data is None or statcast_data.empty:
+            return f"No Statcast pitching data available for {player_name} from {start_date} to {end_date}"
+        
+        # Format the data
+        return format_statcast_pitching_data(statcast_data)
+        
+    except Exception as e:
+        return f"Error retrieving Statcast data for {player_name}: {str(e)}"
 
 
 if __name__ == "__main__":
