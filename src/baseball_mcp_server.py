@@ -12,7 +12,11 @@ from data_utils import (
     format_live_game_data
 )
 
-VERSION = "0.0.3"
+try:
+    from importlib.metadata import version
+    VERSION = version("baseball-mcp")
+except Exception:
+    VERSION = "0.0.3"  # Fallback version
 BASE_URL = "https://statsapi.mlb.com/api/v1"
 USER_AGENT = "baseball-mcp-server/1.0"
 
