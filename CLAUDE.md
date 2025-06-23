@@ -9,22 +9,26 @@ This is an MCP (Model Context Protocol) server that provides access to Major Lea
 ### Completed Features
 - Complete MCP server implementation with Python
 - Comprehensive MLB Stats API integration with all major endpoints
+- **NEW: Full Minor League Support** (v0.0.6):
+  - Access data for Triple-A, Double-A, High-A, Single-A, and Rookie leagues
+  - Player stats, team rosters, and game schedules for all minor league levels
+  - New tool to list all available sports/leagues with their IDs
 - Player functionality:
-  - Search players by name
+  - Search players by name (across all levels)
   - Get detailed player information by ID
-  - Retrieve player statistics (career, season, game logs)
+  - Retrieve player statistics (career, season, game logs) for MLB and minor leagues
   - **NEW: Statcast batting metrics** (exit velocity, launch angle, barrel rate)
   - **NEW: Statcast pitching metrics** (spin rate, velocity, pitch movement)
 - Team functionality:
-  - Search and list all MLB teams
+  - Search and list teams from any league (MLB or minor leagues)
   - Get detailed team information
   - View team rosters (active, 40-man, full season)
 - Game functionality:
-  - View game schedules with flexible date filtering
-  - Get detailed game boxscores
-  - Access live game feeds for real-time data
+  - View game schedules for any league level
+  - Get detailed game boxscores (MLB and minor leagues)
+  - Access live game feeds for real-time data (MLB only)
 - League functionality:
-  - View current standings by league/division
+  - View current standings by league/division (MLB only)
   - Support for different standings types
 - **NEW: Caching system**:
   - File-based JSON cache with 24-hour TTL
@@ -104,28 +108,46 @@ baseball-mcp/
 ## MCP Integration Notes
 
 ### Current Tools
-1. **Player Tools**:
-   - `search_player`: Search for players by name
+1. **Sports/League Tools**:
+   - `get_available_sports`: List all available sports/leagues with their IDs
+
+2. **Player Tools**:
+   - `search_player`: Search for players by name (all levels)
    - `get_player`: Get detailed player information by ID
-   - `get_player_stats`: Retrieve player statistics
+   - `get_player_stats`: Retrieve player statistics (MLB and minor leagues)
    - `get_player_statcast_batting`: Get Statcast batting metrics (exit velocity, launch angle, etc.)
    - `get_player_statcast_pitching`: Get Statcast pitching metrics (spin rate, velocity, etc.)
 
-2. **Team Tools**:
-   - `search_teams`: Search and filter MLB teams
+3. **Team Tools**:
+   - `search_teams`: Search and filter teams (MLB and minor leagues)
    - `get_team`: Get detailed team information
    - `get_team_roster`: View team rosters
 
-3. **Game Tools**:
-   - `get_schedule`: View game schedules
-   - `get_game_info`: Get game boxscore data
-   - `get_live_game_feed`: Access live game data
+4. **Game Tools**:
+   - `get_schedule`: View game schedules (MLB and minor leagues)
+   - `get_game_info`: Get game boxscore data (MLB and minor leagues)
+   - `get_live_game_feed`: Access live game data (MLB only)
 
-4. **League Tools**:
-   - `get_standings`: View league/division standings
+5. **League Tools**:
+   - `get_standings`: View league/division standings (MLB only)
 
 ### Tool Response Format
 All tools return formatted, human-readable responses with relevant data organized by category. Error handling is implemented for all API calls.
+
+### Minor League Usage
+To access minor league data, use the appropriate sport_id parameter:
+- **Triple-A (AAA)**: sport_id=11
+- **Double-A (AA)**: sport_id=12
+- **High-A (A+)**: sport_id=13
+- **Single-A (A)**: sport_id=14
+- **Rookie (R)**: sport_id=16
+
+Example queries:
+- Get Triple-A teams: `search_teams(sport_id=11)`
+- Get Double-A player stats: `get_player_stats(person_id=123456, sport_id=12, stats="season")`
+- Get Single-A schedule: `get_schedule(sport_id=14, start_date="2024-06-01", end_date="2024-06-07")`
+
+Use `get_available_sports()` to see all available leagues and their IDs.
 
 ## Known Limitations
 - ~~No caching mechanism (each request hits the API)~~ ✅ Fixed in v0.0.4
@@ -134,6 +156,11 @@ All tools return formatted, human-readable responses with relevant data organize
 - Rate limiting not implemented (relies on API's built-in limits)
 - No webhook support for real-time updates
 - DataFrames from pybaseball are not cached (JSON serialization limitation)
+- Minor league limitations:
+  - Standings not available for minor leagues
+  - Live game feeds only available for MLB games
+  - YearByYear stats only show MLB history
+  - Statcast data only available for MLB players
 
 ## Debugging Tips
 - Check API responses in `src/data_utils.py` for troubleshooting
@@ -143,6 +170,8 @@ All tools return formatted, human-readable responses with relevant data organize
 - Run example test scripts in `test/` directory
 
 ## Version History
+- v0.0.7: Added minor league example screenshot, documentation improvements
+- v0.0.6: Added full minor league support with sport IDs, new get_available_sports tool
 - v0.0.5: Refactored code into separate modules (mlb_stats_api.py, statcast_api.py), improved testing
 - v0.0.4: Added Statcast data integration with pybaseball, implemented caching system
 - v0.0.3: Reorganized project structure with src/ and test/ directories

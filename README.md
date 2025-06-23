@@ -1,41 +1,52 @@
 # baseball-mcp
 
-MCP (Model Context Protocol) Server for Major League Baseball Data.
+MCP (Model Context Protocol) Server for Major League Baseball and Minor League Baseball Data.
 
 ## Overview
 
-This MCP server provides comprehensive access to MLB data through the official MLB Stats API. It allows you to search for players, teams, view schedules, check standings, and access live game data.
+This MCP server provides comprehensive access to MLB and Minor League Baseball data through the official MLB Stats API. It allows you to search for players, teams, view schedules, check standings, and access game data across all levels of professional baseball including Triple-A, Double-A, High-A, Single-A, and Rookie leagues.
 
 ## Features
 
 ### Player Data
 
-- Search for MLB players by name (active and retired)
+- Search for players by name (active and retired, across all levels)
 - Retrieve detailed player information by ID
-- Get comprehensive player statistics (career, season, game logs)
+- Get comprehensive player statistics for MLB and Minor Leagues (career, season, game logs)
 - Access batting, pitching, and fielding statistics
-- **NEW: Get Statcast batting metrics** (exit velocity, launch angle, barrel rate)
-- **NEW: Get Statcast pitching metrics** (spin rate, velocity, pitch movement)
+- **NEW: Get Statcast batting metrics** (exit velocity, launch angle, barrel rate) - MLB only
+- **NEW: Get Statcast pitching metrics** (spin rate, velocity, pitch movement) - MLB only
 
 ### Team Data
 
-- Search and browse all MLB teams
+- Search and browse teams from MLB and all Minor League levels
 - Get detailed team information
 - View team rosters (active, 40-man, full season)
 - Access team statistics and historical data
 
 ### Game Data
 
-- View game schedules with date filtering
-- Get detailed game information and boxscores
-- Access live game feeds for ongoing games
+- View game schedules for any league level with date filtering
+- Get detailed game information and boxscores (MLB and Minor Leagues)
+- Access live game feeds for ongoing games (MLB only)
 - Check game status and scores
 
 ### Standings
 
-- View current league standings
+- View current league standings (MLB only)
 - Access division standings
 - Check wildcard standings
+
+### Minor League Support
+
+- **NEW: Full support for Minor League data** including:
+  - Triple-A (AAA)
+  - Double-A (AA)
+  - High-A (A+)
+  - Single-A (A)
+  - Rookie (R)
+- Get available sports/leagues with their IDs
+- Access player stats, team rosters, and schedules for all minor league levels
 
 ## Installation
 
@@ -85,9 +96,24 @@ uv run src/baseball_mcp_server.py
 
 ### Available Tools
 
+#### `get_available_sports`
+
+Get list of all available sports/leagues in the MLB Stats API.
+
+**Parameters:** None
+
+**Example:**
+
+```json
+{
+  "tool": "get_available_sports",
+  "arguments": {}
+}
+```
+
 #### `search_player`
 
-Search for MLB players by name.
+Search for baseball players by name (across all levels).
 
 **Parameters:**
 
@@ -128,14 +154,19 @@ Get detailed information about a specific MLB player.
 
 #### `get_player_stats`
 
-Get statistics for a specific MLB player.
+Get statistics for a specific player (MLB or Minor Leagues).
 
 **Parameters:**
 
 - `person_id` (integer, required): Unique Player Identifier
 - `stats` (string, required): Type of statistics (e.g., 'season', 'career', 'yearByYear', 'gameLog')
 - `season` (string, optional): Season of play
-- `sport_id` (integer, optional): Sport ID (default: 1 for MLB)
+- `sport_id` (integer, optional): Sport ID - Use 1 for MLB (default), or:
+  - 11: Triple-A (AAA)
+  - 12: Double-A (AA)
+  - 13: High-A (A+)
+  - 14: Single-A (A)
+  - 16: Rookie (R)
 - `group` (string, optional): Stat group (e.g., 'hitting', 'pitching', 'fielding')
 
 **Example:**
@@ -154,14 +185,14 @@ Get statistics for a specific MLB player.
 
 #### `search_teams`
 
-Search for MLB teams.
+Search for baseball teams (MLB or Minor Leagues).
 
 **Parameters:**
 
 - `season` (string, optional): Season of play
-- `sport_id` (integer, optional): Sport ID (default: 1 for MLB)
+- `sport_id` (integer, optional): Sport ID - Use 1 for MLB (default), or minor league IDs (11-14, 16)
 - `active_status` (string, optional): 'Y' for active, 'N' for inactive, 'B' for both (default: 'Y')
-- `league_id` (integer, optional): League ID (103 for AL, 104 for NL)
+- `league_id` (integer, optional): League ID (103 for AL, 104 for NL) - MLB only
 - `division_id` (integer, optional): Division ID
 
 **Example:**
@@ -398,11 +429,63 @@ baseball-mcp/
 
 ## Examples
 
+### Minor League Examples
+
+#### Get Available Sports/Leagues
+```json
+{
+  "tool": "get_available_sports",
+  "arguments": {}
+}
+```
+
+#### Get Triple-A Teams
+```json
+{
+  "tool": "search_teams",
+  "arguments": {
+    "sport_id": 11
+  }
+}
+```
+
+#### Get Minor League Player Stats
+```json
+{
+  "tool": "get_player_stats",
+  "arguments": {
+    "person_id": 702616,
+    "stats": "season",
+    "sport_id": 11,
+    "season": "2024"
+  }
+}
+```
+*Note: This example gets Jackson Holliday's Triple-A stats*
+
+#### Get Double-A Schedule
+```json
+{
+  "tool": "get_schedule",
+  "arguments": {
+    "sport_id": 12,
+    "start_date": "2024-06-01",
+    "end_date": "2024-06-07"
+  }
+}
+```
+
+### MLB Examples
+
 ![Example of getting the Dodgers offensive stats as of June 21 2025](examples/DodgersStatsJun212025.png)
 
 ![Example of Aaron Judge's hard hit rate data](examples/AaronJudgeHardHitRate.png)
 
 ![Example of Clayton Kershaw's spin rate data](examples/ClaytonKershawSpinRate.png)
+
+### Minor League Examples
+
+![Example of Jac Caglianone's minor league stats in 2025](examples/JacCaglianoneMinorsStats2025.png)
 
 ## Caching
 

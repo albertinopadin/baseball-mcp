@@ -17,7 +17,8 @@
       "WebFetch(domain:baseballsavant.mlb.com)",
       "mcp__baseball-mcp__get_player_statcast_batting",
       "mcp__baseball-mcp__get_player_statcast_pitching",
-      "WebFetch(domain:docs.anthropic.com)"
+      "WebFetch(domain:docs.anthropic.com)",
+      "Bash(grep:*)"
     ],
     "deny": []
   }

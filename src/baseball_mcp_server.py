@@ -1,23 +1,44 @@
 from mcp.server.fastmcp import FastMCP
 import mlb_stats_api
 import statcast_api
+import sports_api
+from sports_constants import MLB, TRIPLE_A, DOUBLE_A, HIGH_A, SINGLE_A, ROOKIE
 
 try:
     from importlib.metadata import version
     VERSION = version("baseball-mcp")
 except Exception:
-    VERSION = "0.0.4"  # Fallback version
+    VERSION = "0.0.7"  # Fallback version
 
 mcp = FastMCP("BaseballMcp")
+
+
+# Sports/League information
+@mcp.tool()
+async def get_available_sports() -> str:
+    """Get list of all available sports/leagues in the MLB Stats API.
+    
+    Returns information about all available sports including:
+    - MLB (sport_id: 1)
+    - Minor Leagues: Triple-A (11), Double-A (12), High-A (13), Single-A (14), Rookie (16)
+    - International leagues (KBO, NPB, etc.)
+    - Other baseball organizations
+    
+    Use these sport IDs with player stats, team search, and schedule functions.
+    """
+    return await sports_api.get_available_sports()
 
 
 # MLB Stats API tools
 @mcp.tool()
 async def search_player(search_str: str) -> str:
-    """Search for MLB player.
+    """Search for baseball players across all leagues (MLB and Minor Leagues).
 
     Args:
         search_str: Name of player to search for
+    
+    Note: Returns players from all levels. Use get_player_stats with specific 
+    sport_id to get minor league statistics.
     """
     return await mlb_stats_api.search_player(search_str)
 
@@ -42,14 +63,22 @@ async def get_player_stats(
     sport_id: int = 1,
     group: str | None = None
 ) -> str:
-    """Get statistics for a specific MLB player.
+    """Get statistics for a specific player (MLB or Minor Leagues).
     
     Args:
         person_id: Unique Player Identifier
         stats: Type of statistics (e.g., 'season', 'career', 'yearByYear', 'gameLog')
         season: Season of play (optional)
-        sport_id: Sport ID (default: 1 for MLB)
+        sport_id: Sport ID - Use 1 for MLB (default), or minor league IDs:
+                  - 11: Triple-A (AAA)
+                  - 12: Double-A (AA)
+                  - 13: High-A (A+)
+                  - 14: Single-A (A)
+                  - 16: Rookie (R)
         group: Stat group (e.g., 'hitting', 'pitching', 'fielding')
+    
+    Note: For minor league stats, you must specify the exact sport_id for the level.
+    Career stats only available for MLB (sport_id=1).
     """
     return await mlb_stats_api.get_player_stats(person_id, stats, season, sport_id, group)
 
@@ -62,14 +91,21 @@ async def search_teams(
     league_id: int | None = None,
     division_id: int | None = None
 ) -> str:
-    """Search for MLB teams.
+    """Search for baseball teams (MLB or Minor Leagues).
     
     Args:
         season: Season of play (optional)
-        sport_id: Sport ID (default: 1 for MLB)
+        sport_id: Sport ID - Use 1 for MLB (default), or minor league IDs:
+                  - 11: Triple-A (AAA) - 30 teams
+                  - 12: Double-A (AA) - 30 teams
+                  - 13: High-A (A+) - 30 teams
+                  - 14: Single-A (A) - 30 teams
+                  - 16: Rookie (R)
         active_status: 'Y' for active, 'N' for inactive, 'B' for both
-        league_id: League ID (optional)
+        league_id: League ID (optional) - Note: Minor leagues don't use AL/NL structure
         division_id: Division ID (optional)
+    
+    Example: To get all Triple-A teams, use sport_id=11
     """
     return await mlb_stats_api.search_teams(season, sport_id, active_status, league_id, division_id)
 
@@ -112,25 +148,35 @@ async def get_schedule(
     team_id: int | None = None,
     game_type: str | None = None
 ) -> str:
-    """Get MLB game schedule.
+    """Get baseball game schedule (MLB or Minor Leagues).
     
     Args:
-        sport_id: Sport ID (default: 1 for MLB)
+        sport_id: Sport ID - Use 1 for MLB (default), or minor league IDs:
+                  - 11: Triple-A (AAA)
+                  - 12: Double-A (AA)
+                  - 13: High-A (A+)
+                  - 14: Single-A (A)
+                  - 16: Rookie (R)
         season: Season of play (optional)
         start_date: Start date (format: 'YYYY-MM-DD')
         end_date: End date (format: 'YYYY-MM-DD')
         team_id: Filter by specific team (optional)
         game_type: Type of games (e.g., 'R' for regular season, 'P' for postseason)
+    
+    Example: To get Triple-A games for a date range, use sport_id=11
     """
     return await mlb_stats_api.get_schedule(sport_id, season, start_date, end_date, team_id, game_type)
 
 
 @mcp.tool()
 async def get_game_info(game_pk: int) -> str:
-    """Get detailed information about a specific game.
+    """Get detailed information about a specific game (MLB or Minor Leagues).
     
     Args:
         game_pk: Unique Primary Key representing a game
+    
+    Note: Works for both MLB and minor league games. Get game_pk from schedule.
+    Minor league games have boxscore data but not live feed data.
     """
     return await mlb_stats_api.get_game_info(game_pk)
 
@@ -142,23 +188,29 @@ async def get_standings(
     standings_type: str = "regularSeason",
     date: str | None = None
 ) -> str:
-    """Get league standings.
+    """Get league standings (MLB only - not available for minor leagues).
     
     Args:
         league_id: League ID (103 for AL, 104 for NL)
         season: Season of play (optional)
         standings_type: Type of standings (e.g., 'regularSeason', 'wildCard', 'divisionLeaders')
         date: Specific date for standings (format: 'YYYY-MM-DD')
+    
+    Note: Standings are only available for MLB. Minor leagues use different
+    organizational structures and standings are not available via this API.
     """
     return await mlb_stats_api.get_standings(league_id, season, standings_type, date)
 
 
 @mcp.tool()
 async def get_live_game_feed(game_pk: int) -> str:
-    """Get live feed data for an ongoing game.
+    """Get live feed data for an ongoing game (MLB only).
     
     Args:
         game_pk: Unique Primary Key representing a game
+    
+    Note: Live feeds are only available for MLB games. Minor league games
+    will return a 404 error. Use get_game_info for minor league boxscores.
     """
     return await mlb_stats_api.get_live_game_feed(game_pk)
 
