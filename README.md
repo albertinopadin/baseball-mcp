@@ -1,10 +1,14 @@
 # baseball-mcp
 
-MCP (Model Context Protocol) Server for Major League Baseball and Minor League Baseball Data.
+MCP (Model Context Protocol) Server for Major League Baseball, Minor League Baseball, and Nippon Professional Baseball (NPB) Data.
 
 ## Overview
 
-This MCP server provides comprehensive access to MLB and Minor League Baseball data through the official MLB Stats API. It allows you to search for players, teams, view schedules, check standings, and access game data across all levels of professional baseball including Triple-A, Double-A, High-A, Single-A, and Rookie leagues.
+This MCP server provides comprehensive access to baseball data from multiple leagues:
+- **MLB and Minor League Baseball** through the official MLB Stats API
+- **Nippon Professional Baseball (NPB)** through web scraping of official NPB statistics
+
+It allows you to search for players, teams, view schedules, check standings, and access game data across all levels of professional baseball including Triple-A, Double-A, High-A, Single-A, Rookie leagues, and Japanese professional baseball.
 
 ## Features
 
@@ -16,6 +20,7 @@ This MCP server provides comprehensive access to MLB and Minor League Baseball d
 - Access batting, pitching, and fielding statistics
 - **NEW: Get Statcast batting metrics** (exit velocity, launch angle, barrel rate) - MLB only
 - **NEW: Get Statcast pitching metrics** (spin rate, velocity, pitch movement) - MLB only
+- **NEW: Search and retrieve NPB (Japanese baseball) player statistics**
 
 ### Team Data
 
@@ -47,6 +52,15 @@ This MCP server provides comprehensive access to MLB and Minor League Baseball d
   - Rookie (R)
 - Get available sports/leagues with their IDs
 - Access player stats, team rosters, and schedules for all minor league levels
+
+### NPB (Japanese Baseball) Support
+
+- **NEW: Full support for Nippon Professional Baseball** including:
+  - Central League and Pacific League teams
+  - Player search and statistics retrieval
+  - Batting and pitching statistics
+  - Historical player data
+- Example: Get Shohei Ohtani's NPB statistics before his MLB career
 
 ## Installation
 
@@ -399,6 +413,66 @@ Get Statcast pitching metrics for a player including spin rate, velocity, and pi
 - Pitch usage percentages
 - Whiff rate
 
+#### `search_npb_player`
+
+Search for NPB (Japanese baseball) players by name.
+
+**Parameters:**
+
+- `search_str` (string, required): Name of player to search for
+
+**Example:**
+
+```json
+{
+  "tool": "search_npb_player",
+  "arguments": {
+    "search_str": "Shohei Ohtani"
+  }
+}
+```
+
+#### `get_npb_player_stats`
+
+Get NPB player statistics for a specific season or career.
+
+**Parameters:**
+
+- `player_id` (string, required): Player ID (obtained from search_npb_player)
+- `season` (string, optional): Season year (e.g., "2017")
+
+**Example:**
+
+```json
+{
+  "tool": "get_npb_player_stats",
+  "arguments": {
+    "player_id": "otani,_shohei",
+    "season": "2017"
+  }
+}
+```
+
+**Returns:**
+
+- Batting statistics: AVG, HR, RBI, OBP, SLG, OPS
+- Pitching statistics: W-L, ERA, IP, SO, WHIP
+
+#### `get_npb_teams`
+
+Get list of all NPB teams.
+
+**Parameters:** None
+
+**Example:**
+
+```json
+{
+  "tool": "get_npb_teams",
+  "arguments": {}
+}
+```
+
 ## Requirements
 
 - Python 3.12+
@@ -416,12 +490,19 @@ baseball-mcp/
 │   ├── mlb_stats_api.py       # MLB Stats API client functions
 │   ├── statcast_api.py        # Statcast/pybaseball client functions
 │   ├── data_utils.py          # Utilities for formatting MLB data
-│   └── cache_utils.py         # Caching mechanism for API responses
+│   ├── cache_utils.py         # Caching mechanism for API responses
+│   └── npb/                   # NPB (Japanese baseball) module
+│       ├── api.py             # NPB API interface
+│       ├── constants.py       # NPB teams and league data
+│       ├── data_formatters.py # NPB data formatting utilities
+│       ├── providers/         # Data provider implementations
+│       └── scrapers/          # Web scraping implementations
 ├── test/
 │   ├── test_dodgers_stats.py  # Example test script
 │   ├── test_statcast.py       # Statcast tools test script
 │   ├── test_mlb_stats_api.py  # Unit tests for MLB Stats API
-│   └── test_statcast_api.py   # Unit tests for Statcast API
+│   ├── test_statcast_api.py   # Unit tests for Statcast API
+│   └── test_npb_api.py        # Unit tests for NPB API
 ├── pyproject.toml             # Project configuration and dependencies
 ├── README.md                  # User documentation
 └── CLAUDE.md                  # Developer documentation
@@ -487,6 +568,31 @@ baseball-mcp/
 
 ![Example of Jac Caglianone's minor league stats in 2025](examples/JacCaglianoneMinorsStats2025.png)
 
+### NPB Examples
+
+#### Search for Shohei Ohtani in NPB
+```json
+{
+  "tool": "search_npb_player",
+  "arguments": {
+    "search_str": "Shohei Ohtani"
+  }
+}
+```
+
+#### Get Ohtani's 2017 NPB Stats (his final NPB season)
+```json
+{
+  "tool": "get_npb_player_stats",
+  "arguments": {
+    "player_id": "otani,_shohei",
+    "season": "2017"
+  }
+}
+```
+
+Returns both batting (.332 AVG, 8 HR, 31 RBI) and pitching (3-2, 3.20 ERA, 29 K) statistics.
+
 ## Caching
 
 The server implements a file-based caching mechanism to improve performance:
@@ -501,3 +607,4 @@ This server uses:
 
 - **MLB Stats API** (statsapi.mlb.com) for player, team, and game data
 - **Baseball Savant** (via pybaseball) for Statcast metrics including exit velocity, launch angle, and spin rate
+- **NPB Official Site** (npb.jp) for Japanese baseball statistics via web scraping

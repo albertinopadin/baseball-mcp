@@ -40,6 +40,13 @@ class NPBOfficialScraper(BaseScraper):
         players = []
         name_lower = name.lower()
         
+        # Also handle name variations (e.g., "Shohei Ohtani" vs "Shohei Otani")
+        name_variations = [name_lower]
+        if "ohtani" in name_lower:
+            name_variations.append(name_lower.replace("ohtani", "otani"))
+        elif "otani" in name_lower:
+            name_variations.append(name_lower.replace("otani", "ohtani"))
+        
         # Check batting leaders
         # NPB uses different URLs: bat_c.html for Central, bat_p.html for Pacific
         batting_urls = [
@@ -51,7 +58,8 @@ class NPBOfficialScraper(BaseScraper):
             html = await self.fetch_page(batting_url)
             if html:
                 soup = self.parse_html(html)
-                players.extend(self._extract_players_from_stats_page(soup, name_lower, "batter"))
+                for name_var in name_variations:
+                    players.extend(self._extract_players_from_stats_page(soup, name_var, "batter"))
         
         # Check pitching leaders
         # NPB uses different URLs: pit_c.html for Central, pit_p.html for Pacific
@@ -64,7 +72,30 @@ class NPBOfficialScraper(BaseScraper):
             html = await self.fetch_page(pitching_url)
             if html:
                 soup = self.parse_html(html)
-                players.extend(self._extract_players_from_stats_page(soup, name_lower, "pitcher"))
+                for name_var in name_variations:
+                    players.extend(self._extract_players_from_stats_page(soup, name_var, "pitcher"))
+        
+        # Also check team-specific pages for better coverage
+        # Team codes: g (Giants), t (Tigers), db (BayStars), d (Dragons), c (Carp), s (Swallows)
+        #             h (Hawks), f (Fighters), m (Marines), l (Lions), e (Eagles), b (Buffaloes)
+        team_codes = ['g', 't', 'db', 'd', 'c', 's', 'h', 'f', 'm', 'l', 'e', 'b']
+        
+        for team_code in team_codes:
+            # Check batting stats by team
+            batting_url = f"{self.stats_base_url}/{season}/stats/idb1_{team_code}.html"
+            html = await self.fetch_page(batting_url)
+            if html:
+                soup = self.parse_html(html)
+                for name_var in name_variations:
+                    players.extend(self._extract_players_from_stats_page(soup, name_var, "batter"))
+            
+            # Check pitching stats by team
+            pitching_url = f"{self.stats_base_url}/{season}/stats/idp1_{team_code}.html"
+            html = await self.fetch_page(pitching_url)
+            if html:
+                soup = self.parse_html(html)
+                for name_var in name_variations:
+                    players.extend(self._extract_players_from_stats_page(soup, name_var, "pitcher"))
         
         # Remove duplicates based on name
         seen = set()
@@ -151,6 +182,7 @@ class NPBOfficialScraper(BaseScraper):
         """
         stats_list = []
         
+        # First try league leader pages
         if stat_type == "batting":
             # Get batting stats for both leagues
             urls = [
@@ -167,7 +199,7 @@ class NPBOfficialScraper(BaseScraper):
         for url in urls:
             html = await self.fetch_page(url)
             if not html:
-                logger.error(f"Failed to fetch {stat_type} stats from {url}")
+                logger.debug(f"Failed to fetch {stat_type} stats from {url}")
                 continue
             
             soup = self.parse_html(html)
@@ -177,14 +209,46 @@ class NPBOfficialScraper(BaseScraper):
             else:
                 stats_list.extend(self._extract_pitching_stats(soup, season))
         
+        # Also check team-specific pages for more complete data
+        team_codes = ['g', 't', 'db', 'd', 'c', 's', 'h', 'f', 'm', 'l', 'e', 'b']
+        
+        for team_code in team_codes:
+            if stat_type == "batting":
+                url = f"{self.stats_base_url}/{season}/stats/idb1_{team_code}.html"
+            else:
+                url = f"{self.stats_base_url}/{season}/stats/idp1_{team_code}.html"
+            
+            html = await self.fetch_page(url)
+            if not html:
+                continue
+            
+            soup = self.parse_html(html)
+            
+            if stat_type == "batting":
+                team_stats = self._extract_batting_stats(soup, season, team_code=team_code)
+                # Add stats that aren't already in the list
+                for stat in team_stats:
+                    if not any(s.get("player_name") == stat.get("player_name") for s in stats_list):
+                        stats_list.append(stat)
+            else:
+                team_stats = self._extract_pitching_stats(soup, season, team_code=team_code)
+                for stat in team_stats:
+                    if not any(s.get("player_name") == stat.get("player_name") for s in stats_list):
+                        stats_list.append(stat)
+        
         return stats_list
     
-    def _extract_batting_stats(self, soup, season: int) -> List[Dict[str, Any]]:
+    def _extract_batting_stats(self, soup, season: int, team_code: Optional[str] = None) -> List[Dict[str, Any]]:
         """Extract batting statistics from stats page."""
         stats_list = []
         
-        # Find the stats table
-        table = soup.find("table", class_="statsTable")
+        # Find the stats table - NPB site doesn't use classes
+        tables = soup.find_all("table")
+        if not tables:
+            return stats_list
+        
+        # The first table usually contains the stats
+        table = tables[0] if tables else None
         if not table:
             return stats_list
         
@@ -195,52 +259,62 @@ class NPBOfficialScraper(BaseScraper):
             headers = [th.text.strip() for th in header_row.find_all(["th", "td"])]
         
         # Process data rows
-        rows = table.find_all("tr")[1:]  # Skip header
+        rows = table.find_all("tr")
         for row in rows:
             cells = row.find_all("td")
-            if len(cells) < 10:  # Need minimum columns
+            if len(cells) < 20:  # NPB team pages have ~24 columns
+                continue
+            
+            # Skip if first cell contains header text
+            first_cell_text = cells[0].text.strip()
+            if "batter" in first_cell_text.lower() or "switch" in first_cell_text.lower():
                 continue
             
             try:
-                # Extract player info
-                rank = self.safe_int(cells[0].text)
-                
-                # Player name and link
+                # First cell might be * for lefty, + for switch, or empty
+                # Second cell is player name
                 name_cell = cells[1]
-                player_link = name_cell.find("a")
-                if not player_link:
+                player_name = name_cell.text.strip()
+                
+                # Skip empty rows
+                if not player_name:
                     continue
                 
-                player_name = player_link.text.strip()
-                player_url = player_link.get("href", "")
-                player_id = self._extract_player_id_from_url(player_url)
+                # Extract player link if available
+                player_link = name_cell.find("a")
+                player_url = player_link.get("href", "") if player_link else ""
+                player_id = self._extract_player_id_from_url(player_url) if player_url else player_name.replace(" ", "_").lower()
                 
-                # Team
-                team = cells[2].text.strip()
+                # For team pages, we know the team from the URL
+                team = team_code.upper() if team_code else ""
                 
-                # Stats - map based on typical NPB stats page layout
+                # Stats - NPB team page layout (based on actual data)
+                # Cells: [0]=*, [1]=name, [2]=G, [3]=PA, [4]=AB, [5]=R, [6]=H, [7]=2B, [8]=3B, [9]=HR, 
+                #        [10]=TB, [11]=RBI, [12]=SH, [13]=SF, [14]=SB, [15]=CS, [16]=BB, [17]=HP, [18]=SO, [19]=DP, [20]=GIDP, [21]=BA, [22]=SLG, [23]=OBP
                 stats = {
-                    "player_id": player_id or player_name.replace(" ", "_").lower(),
+                    "player_id": player_id,
                     "player_name": player_name,
                     "season": season,
                     "team": team,
-                    "games": self.safe_int(cells[3].text),
-                    "plate_appearances": self.safe_int(cells[4].text),
-                    "at_bats": self.safe_int(cells[5].text),
-                    "runs": self.safe_int(cells[6].text),
-                    "hits": self.safe_int(cells[7].text),
-                    "doubles": self.safe_int(cells[8].text) if len(cells) > 8 else 0,
-                    "triples": self.safe_int(cells[9].text) if len(cells) > 9 else 0,
-                    "home_runs": self.safe_int(cells[10].text) if len(cells) > 10 else 0,
+                    "games": self.safe_int(cells[2].text) if len(cells) > 2 else 0,
+                    "plate_appearances": self.safe_int(cells[3].text) if len(cells) > 3 else 0,
+                    "at_bats": self.safe_int(cells[4].text) if len(cells) > 4 else 0,
+                    "runs": self.safe_int(cells[5].text) if len(cells) > 5 else 0,
+                    "hits": self.safe_int(cells[6].text) if len(cells) > 6 else 0,
+                    "doubles": self.safe_int(cells[7].text) if len(cells) > 7 else 0,
+                    "triples": self.safe_int(cells[8].text) if len(cells) > 8 else 0,
+                    "home_runs": self.safe_int(cells[9].text) if len(cells) > 9 else 0,
                     "rbis": self.safe_int(cells[11].text) if len(cells) > 11 else 0,
-                    "stolen_bases": self.safe_int(cells[12].text) if len(cells) > 12 else 0,
-                    "batting_average": self.safe_float(cells[-1].text)  # Usually last column
+                    "stolen_bases": self.safe_int(cells[14].text) if len(cells) > 14 else 0,
+                    "walks": self.safe_int(cells[16].text) if len(cells) > 16 else 0,
+                    "strikeouts": self.safe_int(cells[18].text) if len(cells) > 18 else 0,
+                    "batting_average": self.safe_float(cells[21].text) if len(cells) > 21 else 0.0,
+                    "slugging_percentage": self.safe_float(cells[22].text) if len(cells) > 22 else 0.0,
+                    "on_base_percentage": self.safe_float(cells[23].text) if len(cells) > 23 else 0.0
                 }
                 
-                # Calculate additional stats
-                if stats["at_bats"] > 0:
-                    stats["on_base_percentage"] = self._calculate_obp(stats)
-                    stats["slugging_percentage"] = self._calculate_slg(stats)
+                # Calculate OPS if we have the components
+                if stats["batting_average"] > 0 or stats["on_base_percentage"] > 0:
                     stats["ops"] = stats["on_base_percentage"] + stats["slugging_percentage"]
                 
                 stats_list.append(stats)
@@ -251,61 +325,80 @@ class NPBOfficialScraper(BaseScraper):
         
         return stats_list
     
-    def _extract_pitching_stats(self, soup, season: int) -> List[Dict[str, Any]]:
+    def _extract_pitching_stats(self, soup, season: int, team_code: Optional[str] = None) -> List[Dict[str, Any]]:
         """Extract pitching statistics from stats page."""
         stats_list = []
         
-        # Find the stats table
-        table = soup.find("table", class_="statsTable")
+        # Find the stats table - NPB site doesn't use classes
+        tables = soup.find_all("table")
+        if not tables:
+            return stats_list
+        
+        # The first table usually contains the stats
+        table = tables[0] if tables else None
         if not table:
             return stats_list
         
         # Process data rows
-        rows = table.find_all("tr")[1:]  # Skip header
+        rows = table.find_all("tr")
         for row in rows:
             cells = row.find_all("td")
-            if len(cells) < 10:  # Need minimum columns
+            if len(cells) < 20:  # NPB team pages have ~24 columns for pitching too
+                continue
+            
+            # Skip if first cell contains header text
+            first_cell_text = cells[0].text.strip()
+            if "pitcher" in first_cell_text.lower():
                 continue
             
             try:
-                # Extract player info
-                rank = self.safe_int(cells[0].text)
-                
-                # Player name and link
+                # First cell might be * for lefty or empty
+                # Second cell is player name
                 name_cell = cells[1]
-                player_link = name_cell.find("a")
-                if not player_link:
+                player_name = name_cell.text.strip()
+                
+                # Skip empty rows
+                if not player_name:
                     continue
                 
-                player_name = player_link.text.strip()
-                player_url = player_link.get("href", "")
-                player_id = self._extract_player_id_from_url(player_url)
+                # Extract player link if available
+                player_link = name_cell.find("a")
+                player_url = player_link.get("href", "") if player_link else ""
+                player_id = self._extract_player_id_from_url(player_url) if player_url else player_name.replace(" ", "_").lower()
                 
-                # Team
-                team = cells[2].text.strip()
+                # For team pages, we know the team from the URL
+                team = team_code.upper() if team_code else ""
                 
-                # Stats - typical NPB pitching stats layout
+                # Stats - NPB team pitching page layout
+                # Based on actual data: [0]=*, [1]=name, [2]=G, [3]=W, [4]=L, [5]=S, [6]=H, [7]=CG, [8]=SO, [9]=WP%,
+                #        [10]=BF, [11]=GF, [12]=IP, [13]=H, [14]=HR, [15]=BB, [16]=HP, [17]=SO, [18]=R, [19]=ER, [20]=WHIP, [21]=K/9, [22]=BB/9, [23]=ERA
                 stats = {
-                    "player_id": player_id or player_name.replace(" ", "_").lower(),
+                    "player_id": player_id,
                     "player_name": player_name,
                     "season": season,
                     "team": team,
-                    "wins": self.safe_int(cells[3].text),
-                    "losses": self.safe_int(cells[4].text),
-                    "era": self.safe_float(cells[5].text),
-                    "games": self.safe_int(cells[6].text),
-                    "games_started": self.safe_int(cells[7].text) if len(cells) > 7 else 0,
-                    "complete_games": self.safe_int(cells[8].text) if len(cells) > 8 else 0,
-                    "shutouts": self.safe_int(cells[9].text) if len(cells) > 9 else 0,
-                    "innings_pitched": self.safe_float(cells[10].text) if len(cells) > 10 else 0,
-                    "strikeouts": self.safe_int(cells[11].text) if len(cells) > 11 else 0,
-                    "walks": self.safe_int(cells[12].text) if len(cells) > 12 else 0,
+                    "games": self.safe_int(cells[2].text) if len(cells) > 2 else 0,
+                    "wins": self.safe_int(cells[3].text) if len(cells) > 3 else 0,
+                    "losses": self.safe_int(cells[4].text) if len(cells) > 4 else 0,
+                    "saves": self.safe_int(cells[5].text) if len(cells) > 5 else 0,
+                    "holds": self.safe_int(cells[6].text) if len(cells) > 6 else 0,
+                    "complete_games": self.safe_int(cells[7].text) if len(cells) > 7 else 0,
+                    "shutouts": self.safe_int(cells[8].text) if len(cells) > 8 else 0,
+                    "innings_pitched": self._convert_innings(cells[11].text.strip() + cells[12].text.strip()) if len(cells) > 12 else 0.0,
+                    "hits_allowed": self.safe_int(cells[13].text) if len(cells) > 13 else 0,
+                    "home_runs_allowed": self.safe_int(cells[14].text) if len(cells) > 14 else 0,
+                    "walks": self.safe_int(cells[15].text) if len(cells) > 15 else 0,
+                    "strikeouts": self.safe_int(cells[18].text) if len(cells) > 18 else 0,
+                    "runs_allowed": self.safe_int(cells[19].text) if len(cells) > 19 else 0,
+                    "earned_runs": self.safe_int(cells[19].text) if len(cells) > 19 else 0,
+                    "era": self.safe_float(cells[23].text) if len(cells) > 23 else 0.0,
                 }
                 
-                # Calculate WHIP if we have the data
-                if stats["innings_pitched"] > 0 and len(cells) > 13:
-                    hits_allowed = self.safe_int(cells[13].text)
-                    stats["whip"] = (hits_allowed + stats["walks"]) / stats["innings_pitched"]
+                # Calculate WHIP if not provided
+                if stats["innings_pitched"] > 0:
+                    stats["whip"] = (stats["hits_allowed"] + stats["walks"]) / stats["innings_pitched"]
+                else:
+                    stats["whip"] = 0.0
                 
                 stats_list.append(stats)
                 
@@ -315,27 +408,28 @@ class NPBOfficialScraper(BaseScraper):
         
         return stats_list
     
-    def _calculate_obp(self, stats: Dict[str, Any]) -> float:
-        """Calculate on-base percentage."""
-        # Simplified OBP without walks/HBP data
-        # This is just batting average as approximation
-        return stats.get("batting_average", 0.0)
-    
-    def _calculate_slg(self, stats: Dict[str, Any]) -> float:
-        """Calculate slugging percentage."""
-        ab = stats.get("at_bats", 0)
-        if ab == 0:
+    def _convert_innings(self, innings_str: str) -> float:
+        """Convert NPB innings format to decimal.
+        
+        NPB uses ".1" for 1/3 of an inning and ".2" for 2/3 of an inning.
+        """
+        if not innings_str:
             return 0.0
         
-        singles = stats.get("hits", 0) - stats.get("doubles", 0) - stats.get("triples", 0) - stats.get("home_runs", 0)
-        total_bases = (
-            singles + 
-            (2 * stats.get("doubles", 0)) + 
-            (3 * stats.get("triples", 0)) + 
-            (4 * stats.get("home_runs", 0))
-        )
-        
-        return total_bases / ab
+        innings_str = innings_str.strip()
+        if '.' in innings_str:
+            whole, fraction = innings_str.split('.')
+            whole_innings = self.safe_int(whole)
+            
+            if fraction == '1':
+                return whole_innings + 0.33
+            elif fraction == '2':
+                return whole_innings + 0.67
+            else:
+                # Regular decimal
+                return self.safe_float(innings_str)
+        else:
+            return self.safe_float(innings_str)
     
     async def get_team_standings(self, season: Optional[int] = None) -> Dict[str, List[Dict[str, Any]]]:
         """Get NPB standings for both leagues."""

@@ -2,7 +2,11 @@
 
 ## Project Overview
 
-This is an MCP (Model Context Protocol) server that provides access to Major League Baseball player data through the official MLB Stats API. The server is designed to work with Claude Desktop and other MCP-compatible clients.
+This is an MCP (Model Context Protocol) server that provides access to baseball data from multiple leagues:
+- **MLB and Minor League Baseball** through the official MLB Stats API
+- **Nippon Professional Baseball (NPB)** through web scraping of official statistics
+
+The server is designed to work with Claude Desktop and other MCP-compatible clients, providing comprehensive baseball statistics across different leagues and countries.
 
 ## Current Implementation Status
 
@@ -13,14 +17,20 @@ This is an MCP (Model Context Protocol) server that provides access to Major Lea
   - Access data for Triple-A, Double-A, High-A, Single-A, and Rookie leagues
   - Player stats, team rosters, and game schedules for all minor league levels
   - New tool to list all available sports/leagues with their IDs
+- **NEW: NPB (Japanese Baseball) Support** (v0.0.8):
+  - Search for NPB players by name
+  - Retrieve batting and pitching statistics
+  - Support for historical NPB data
+  - Web scraping from official NPB statistics site
+  - Name variation handling (e.g., Ohtani/Otani)
 - Player functionality:
-  - Search players by name (across all levels)
+  - Search players by name (across all levels including NPB)
   - Get detailed player information by ID
-  - Retrieve player statistics (career, season, game logs) for MLB and minor leagues
+  - Retrieve player statistics (career, season, game logs) for MLB, minor leagues, and NPB
   - **NEW: Statcast batting metrics** (exit velocity, launch angle, barrel rate)
   - **NEW: Statcast pitching metrics** (spin rate, velocity, pitch movement)
 - Team functionality:
-  - Search and list teams from any league (MLB or minor leagues)
+  - Search and list teams from any league (MLB, minor leagues, or NPB)
   - Get detailed team information
   - View team rosters (active, 40-man, full season)
 - Game functionality:
@@ -28,7 +38,7 @@ This is an MCP (Model Context Protocol) server that provides access to Major Lea
   - Get detailed game boxscores (MLB and minor leagues)
   - Access live game feeds for real-time data (MLB only)
 - League functionality:
-  - View current standings by league/division (MLB only)
+  - View current standings by league/division (MLB and NPB)
   - Support for different standings types
 - **NEW: Caching system**:
   - File-based JSON cache with 24-hour TTL
@@ -41,8 +51,9 @@ This is an MCP (Model Context Protocol) server that provides access to Major Lea
 - **APIs**: 
   - MLB Stats API (statsapi.mlb.com) - Player, team, and game data
   - Baseball Savant (via pybaseball) - Statcast metrics
+  - NPB Official Site (npb.jp) - Japanese baseball statistics via web scraping
 - **Protocol**: MCP (Model Context Protocol)
-- **Key Dependencies**: httpx, pybaseball, pandas
+- **Key Dependencies**: httpx, pybaseball, pandas, beautifulsoup4
 
 ### Project Structure
 ```
@@ -52,12 +63,28 @@ baseball-mcp/
 │   ├── mlb_stats_api.py       # MLB Stats API client functions
 │   ├── statcast_api.py        # Statcast/pybaseball client functions
 │   ├── data_utils.py          # Data formatting utilities
-│   └── cache_utils.py         # Caching mechanism
+│   ├── cache_utils.py         # Caching mechanism
+│   └── npb/                   # NPB (Japanese baseball) module
+│       ├── __init__.py        # Module initialization
+│       ├── api.py             # NPB API interface
+│       ├── constants.py       # NPB teams and league constants
+│       ├── data_formatters.py # NPB data formatting utilities
+│       ├── providers/         # Data provider implementations
+│       │   ├── base.py        # Abstract base provider
+│       │   └── scraper_provider.py # Web scraping provider
+│       └── scrapers/          # Web scraping implementations
+│           ├── base_scraper.py # Base scraper class
+│           ├── npb_official.py # NPB official site scraper
+│           └── baseball_reference.py # Baseball-Reference scraper (backup)
 ├── test/
 │   ├── test_dodgers_stats.py  # Example test script for Dodgers stats
 │   ├── test_statcast.py       # Statcast functionality tests
 │   ├── test_mlb_stats_api.py  # Unit tests for MLB Stats API
-│   └── test_statcast_api.py   # Unit tests for Statcast API
+│   ├── test_statcast_api.py   # Unit tests for Statcast API
+│   ├── test_npb_api.py        # Unit tests for NPB API
+│   └── test_search_ohtani.py  # Example NPB search test
+├── scratchpads/               # Development notes and research
+│   └── npb-stats-scratchpad.md # NPB implementation research
 ├── .cache/                    # Cache directory (gitignored)
 ├── pyproject.toml             # Project configuration
 ├── uv.lock                    # Dependency lock file
@@ -80,6 +107,8 @@ baseball-mcp/
 - Ensure graceful error handling for network issues
 - Test Statcast data retrieval and caching functionality
 - Verify cache TTL and invalidation
+- Test NPB name variations (e.g., Ohtani/Otani)
+- Verify NPB scraping handles different table structures
 
 ## Future Enhancements
 
@@ -131,6 +160,11 @@ baseball-mcp/
 5. **League Tools**:
    - `get_standings`: View league/division standings (MLB only)
 
+6. **NPB Tools**:
+   - `search_npb_player`: Search for NPB players by name
+   - `get_npb_player_stats`: Get NPB player statistics (batting and pitching)
+   - `get_npb_teams`: Get list of all NPB teams
+
 ### Tool Response Format
 All tools return formatted, human-readable responses with relevant data organized by category. Error handling is implemented for all API calls.
 
@@ -149,6 +183,18 @@ Example queries:
 
 Use `get_available_sports()` to see all available leagues and their IDs.
 
+### NPB Usage
+To access NPB (Japanese baseball) data:
+- Use `search_npb_player()` to find players
+- Player IDs from search results can be used with `get_npb_player_stats()`
+- Season parameter is optional (defaults to all seasons)
+- Handles name variations automatically (e.g., Ohtani/Otani)
+
+Example NPB queries:
+- Search for player: `search_npb_player("Shohei Ohtani")`
+- Get 2017 stats: `get_npb_player_stats("otani,_shohei", "2017")`
+- Get all NPB teams: `get_npb_teams()`
+
 ## Known Limitations
 - ~~No caching mechanism (each request hits the API)~~ ✅ Fixed in v0.0.4
 - Limited to data available through MLB Stats API and Baseball Savant
@@ -161,6 +207,12 @@ Use `get_available_sports()` to see all available leagues and their IDs.
   - Live game feeds only available for MLB games
   - YearByYear stats only show MLB history
   - Statcast data only available for MLB players
+- NPB limitations:
+  - Data obtained via web scraping (no official API)
+  - Limited to statistics available on NPB official site
+  - No advanced metrics (xWOBA, spin rates) for NPB
+  - Historical data may be incomplete for older seasons
+  - Player IDs must be obtained through search first
 
 ## Debugging Tips
 - Check API responses in `src/data_utils.py` for troubleshooting
@@ -170,6 +222,7 @@ Use `get_available_sports()` to see all available leagues and their IDs.
 - Run example test scripts in `test/` directory
 
 ## Version History
+- v0.0.8: Added NPB (Japanese baseball) support with web scraping from official NPB site
 - v0.0.7: Added minor league example screenshot, documentation improvements
 - v0.0.6: Added full minor league support with sport IDs, new get_available_sports tool
 - v0.0.5: Refactored code into separate modules (mlb_stats_api.py, statcast_api.py), improved testing

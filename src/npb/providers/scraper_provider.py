@@ -88,14 +88,34 @@ class ScraperProvider(NPBDataProvider):
             player_batting = None
             player_pitching = None
             
+            # Handle name variations (e.g., "otani" vs "ohtani")
+            player_id_lower = player_id.lower()
+            player_id_variations = [player_id_lower]
+            if "ohtani" in player_id_lower:
+                player_id_variations.append(player_id_lower.replace("ohtani", "otani"))
+            elif "otani" in player_id_lower:
+                player_id_variations.append(player_id_lower.replace("otani", "ohtani"))
+            
             for stat in batting_stats:
-                if stat.get("player_id") == player_id or player_id in stat.get("player_name", "").lower().replace(" ", "_"):
-                    player_batting = stat
+                stat_name_lower = stat.get("player_name", "").lower().replace(" ", "_")
+                stat_id_lower = stat.get("player_id", "").lower()
+                
+                for pid_var in player_id_variations:
+                    if stat_id_lower == pid_var or pid_var in stat_name_lower:
+                        player_batting = stat
+                        break
+                if player_batting:
                     break
             
             for stat in pitching_stats:
-                if stat.get("player_id") == player_id or player_id in stat.get("player_name", "").lower().replace(" ", "_"):
-                    player_pitching = stat
+                stat_name_lower = stat.get("player_name", "").lower().replace(" ", "_")
+                stat_id_lower = stat.get("player_id", "").lower()
+                
+                for pid_var in player_id_variations:
+                    if stat_id_lower == pid_var or pid_var in stat_name_lower:
+                        player_pitching = stat
+                        break
+                if player_pitching:
                     break
             
             if player_batting:
