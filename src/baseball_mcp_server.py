@@ -200,7 +200,12 @@ async def get_player_statcast_pitching(
     return await statcast_api.get_player_statcast_pitching(player_name, start_date, end_date, season)
 
 
-if __name__ == "__main__":
+def main():
+    """Entry point for the baseball-mcp server."""
     print(f"Baseball Stats MCP Server v{VERSION}")
     # Initialize and run the server
     mcp.run(transport='stdio')
+
+
+if __name__ == "__main__":
+    main()

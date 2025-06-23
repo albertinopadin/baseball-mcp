@@ -1,11 +1,23 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "baseball-mcp"
-version = "0.0.5"
-description = "Add your description here"
+version = "0.0.6"
+description = "MCP server for MLB baseball statistics"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = [
-    "httpx>=0.28.1",
-    "mcp[cli]>=1.9.4",
-    "pybaseball>=2.2.7",
-]
+dependencies = ["httpx>=0.28.1", "mcp[cli]>=1.9.4", "pybaseball>=2.2.7"]
+
+[project.scripts]
+baseball-mcp = "baseball_mcp_server:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[tool.hatch.build]
+only-include = ["src"]
+
+[tool.hatch.build.sources]
+"src" = ""
