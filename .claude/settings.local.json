@@ -18,7 +18,12 @@
       "mcp__baseball-mcp__get_player_statcast_batting",
       "mcp__baseball-mcp__get_player_statcast_pitching",
       "WebFetch(domain:docs.anthropic.com)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:npbstats.com)",
+      "WebFetch(domain:www.baseball-reference.com)",
+      "mcp__baseball-mcp__search_npb_player",
+      "mcp__baseball-mcp__get_npb_player_stats"
     ],
     "deny": []
   }
