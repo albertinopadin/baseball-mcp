@@ -17,12 +17,21 @@ The server is designed to work with Claude Desktop and other MCP-compatible clie
   - Access data for Triple-A, Double-A, High-A, Single-A, and Rookie leagues
   - Player stats, team rosters, and game schedules for all minor league levels
   - New tool to list all available sports/leagues with their IDs
-- **NEW: NPB (Japanese Baseball) Support** (v0.0.8):
+- **NEW: NPB (Japanese Baseball) Support** (v0.0.8-0.0.9):
   - Search for NPB players by name
   - Retrieve batting and pitching statistics
   - Support for historical NPB data
   - Web scraping from official NPB statistics site
   - Name variation handling (e.g., Ohtani/Otani)
+  - **NEW: Historical database for pre-2005 players** (v0.0.9):
+    - Local SQLite database with historical player data
+    - Sample data includes Ichiro (1992-2000), Sadaharu Oh, Tetsuharu Kawakami
+    - Composite provider seamlessly combines historical + modern data
+  - **NEW: Advanced metrics calculator** (v0.0.9):
+    - FIP (Fielding Independent Pitching) with NPB-specific constant
+    - wOBA (Weighted On-Base Average) with NPB linear weights
+    - OPS+ and ERA+ (league-adjusted stats)
+    - Basic WAR estimates (simplified without defensive metrics)
 - Player functionality:
   - Search players by name (across all levels including NPB)
   - Get detailed player information by ID
@@ -69,9 +78,20 @@ baseball-mcp/
 │       ├── api.py             # NPB API interface
 │       ├── constants.py       # NPB teams and league constants
 │       ├── data_formatters.py # NPB data formatting utilities
+│       ├── data/              # Historical data management
+│       │   ├── __init__.py
+│       │   ├── database.py    # SQLite database manager
+│       │   ├── historical_data.py # Sample historical player data
+│       │   ├── schema.sql     # Database schema
+│       │   └── metrics/       # Advanced metrics calculators
+│       │       ├── __init__.py
+│       │       ├── calculator.py # NPB metrics calculations
+│       │       └── constants.py  # NPB-specific constants
 │       ├── providers/         # Data provider implementations
 │       │   ├── base.py        # Abstract base provider
-│       │   └── scraper_provider.py # Web scraping provider
+│       │   ├── scraper_provider.py # Web scraping provider
+│       │   ├── historical_provider.py # Local database provider
+│       │   └── composite_provider.py  # Combines historical + modern
 │       └── scrapers/          # Web scraping implementations
 │           ├── base_scraper.py # Base scraper class
 │           ├── npb_official.py # NPB official site scraper
@@ -113,8 +133,8 @@ baseball-mcp/
 ## Future Enhancements
 
 ### Potential Features
-1. **Advanced Metrics**: Include additional sabermetric statistics (WAR, OPS+, FIP, etc.)
-2. **Historical Data**: Enhanced historical season comparisons
+1. ~~**Advanced Metrics**: Include additional sabermetric statistics (WAR, OPS+, FIP, etc.)~~ ✅ Partially completed for NPB
+2. ~~**Historical Data**: Enhanced historical season comparisons~~ ✅ Completed for NPB with local database
 3. **Playoff Data**: Specialized playoff/postseason statistics
 4. **Draft Data**: MLB draft information and history
 5. **Injury Reports**: Player injury status and history
@@ -123,6 +143,8 @@ baseball-mcp/
 8. **Weather Data**: Game-time weather conditions
 9. **Venue Details**: Detailed ballpark information
 10. **Media Content**: Game highlights and video clips
+11. **Expand NPB Historical Data**: Import more complete datasets from community sources
+12. **Commercial API Integration**: Add support for Sportradar or other paid APIs
 
 ### Technical Improvements
 - ~~Implement intelligent caching with TTL~~ ✅ Completed in v0.0.4

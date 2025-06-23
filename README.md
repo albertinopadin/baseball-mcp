@@ -59,10 +59,14 @@ It allows you to search for players, teams, view schedules, check standings, and
   - Central League and Pacific League teams
   - Player search and statistics retrieval
   - Season-by-season batting and pitching statistics
-  - Historical player data from official NPB statistics
+  - **NEW: Historical player data (pre-2005) with local database**
   - Name variation handling (e.g., Ohtani/Otani)
   - All 12 NPB teams supported
-- Example: Get Shohei Ohtani's complete NPB career statistics (2013-2017)
+  - **NEW: Advanced metrics** (FIP, wOBA, OPS+, basic WAR)
+- Examples: 
+  - Get Shohei Ohtani's complete NPB career statistics (2013-2017)
+  - Access Ichiro's full NPB career (1992-2000) with .353 career average
+  - View Sadaharu Oh's 868 career home runs statistics
 
 ## Installation
 
@@ -459,6 +463,11 @@ Get NPB player statistics for a specific season or career.
 
 - Batting statistics: AVG, HR, RBI, OBP, SLG, OPS
 - Pitching statistics: W-L, ERA, IP, SO, WHIP
+- **NEW: Advanced metrics** (when available):
+  - FIP (Fielding Independent Pitching)
+  - wOBA (Weighted On-Base Average)
+  - OPS+ and ERA+ (league-adjusted stats)
+  - Basic WAR estimates
 
 #### `get_npb_teams`
 
@@ -497,7 +506,15 @@ baseball-mcp/
 │       ├── api.py             # NPB API interface
 │       ├── constants.py       # NPB teams and league data
 │       ├── data_formatters.py # NPB data formatting utilities
+│       ├── data/              # Historical data management
+│       │   ├── database.py    # SQLite database manager
+│       │   ├── historical_data.py # Sample historical player data
+│       │   ├── metrics/       # Advanced metrics calculators
+│       │   └── schema.sql     # Database schema
 │       ├── providers/         # Data provider implementations
+│       │   ├── historical_provider.py # Local database provider
+│       │   ├── scraper_provider.py    # Web scraping provider
+│       │   └── composite_provider.py  # Combines historical + modern
 │       └── scrapers/          # Web scraping implementations
 ├── test/
 │   ├── test_dodgers_stats.py  # Example test script
@@ -594,6 +611,13 @@ baseball-mcp/
 ```
 
 Returns both batting (.332 AVG, 8 HR, 31 RBI) and pitching (3-2, 3.20 ERA, 29 K) statistics.
+
+### NPB Data Notes
+
+- **Historical Data**: Pre-2005 data comes from a local database with sample data for legendary players
+- **Modern Data**: 2005+ data is scraped from npb.jp when available
+- **Advanced Metrics**: Calculated metrics (FIP, wOBA, OPS+) use NPB-specific constants
+- **Limitations**: No tracking data (exit velocity, spin rate) available for NPB
 
 ## Caching
 

@@ -727,3 +727,366 @@ Baseball-Reference uses Cloudflare protection which blocks automated scraping:
 2. If blocked, pivot to using community data repositories
 3. Consider implementing a local database approach
 4. Document limitations clearly for users
+
+---
+
+## Extended Research on Historical NPB Data (2025-06-23)
+
+### Current Implementation Analysis
+
+After analyzing the codebase:
+- NPB module uses provider pattern with web scraping
+- NPB official site (npb.jp) only has recent data (2005+)
+- Baseball-Reference blocked by Cloudflare
+- Tests show 404 errors for years like 1992-2000 on npb.jp
+- Current implementation cannot retrieve historical data for players like Ichiro (1992-2000)
+
+### Historical Data Sources Investigation
+
+#### Japanese Statistical Sites
+1. **1point02.jp**
+   - Comprehensive Japanese baseball statistics
+   - Has historical data back to 1936
+   - Includes some calculated advanced metrics
+   - Japanese language only
+
+2. **yakyubaka.com (Yakyu Baka)**
+   - "Baseball Fool" - extensive NPB database
+   - Historical statistics and records
+   - Player career pages with yearly stats
+
+3. **Baseball Lab (baseballdata.jp)**
+   - Japanese baseball analytics site
+   - Historical data and advanced metrics
+   - Subscription may be required for full access
+
+4. **Delta Graphs (deltagraphs.com)**
+   - Japanese sabermetrics pioneer
+   - Calculates NPB-specific WAR
+   - Advanced analytics articles
+
+5. **Yahoo! Japan Sports NPB Section**
+   - Comprehensive modern stats
+   - May have some historical data
+   - Less likely to block scrapers
+
+#### GitHub/Open Source Repositories
+1. **npb-db**
+   - SQLite database with historical NPB stats
+   - Appears to be community maintained
+   - Could be imported directly
+
+2. **armstjc/Nippon-Baseball-Data-Repository**
+   - JSON files with play-by-play data
+   - Python scripts for processing
+   - Actively maintained
+
+3. **Various CSV compilations**
+   - Found several repos with historical NPB data in CSV format
+   - Quality and completeness vary
+   - Often focus on specific eras or teams
+
+### Advanced Metrics Availability Analysis
+
+#### Available (Traditional Stats)
+- **Batting**: G, AB, R, H, 2B, 3B, HR, RBI, SB, CS, BB, SO, AVG, OBP, SLG, OPS
+- **Pitching**: W, L, ERA, G, GS, CG, SHO, SV, IP, H, R, ER, HR, BB, SO, WHIP
+- **Source**: Most Japanese statistical sites from 1936 onward
+
+#### Limited Availability (Advanced Calculated Metrics)
+- **WAR (Wins Above Replacement)**
+  - Delta Graphs calculates NPB-specific WAR
+  - Methodology differs from MLB WAR
+  - Not universally available
+  
+- **FIP (Fielding Independent Pitching)**
+  - Can be calculated from available stats
+  - Need NPB-specific constants
+  - Formula: ((13*HR + 3*BB - 2*K)/IP) + constant
+  
+- **wOBA (Weighted On-Base Average)**
+  - Requires NPB-specific linear weights
+  - Some sites attempt calculations
+  - Different run environment than MLB
+
+- **OPS+ and ERA+**
+  - Park and league adjusted stats
+  - Requires NPB park factors
+  - Can be calculated with effort
+
+#### NOT Available (Tracking-Based Metrics)
+- **Statcast Metrics**: Exit velocity, launch angle, sprint speed
+- **Pitch Tracking**: Spin rate, movement, velocity by pitch type
+- **Expected Stats**: xBA, xSLG, xWOBA
+- **Batted Ball**: Hard hit rate, barrel rate
+- **Reason**: NPB doesn't have publicly available ball tracking technology
+
+### Key Findings
+
+1. **Historical Data Exists** but is fragmented across multiple Japanese sites
+2. **Language Barrier** is significant - most comprehensive sources are Japanese-only
+3. **No Unified API** - all data must be scraped or imported from static sources
+4. **Advanced Metrics** are limited to what can be calculated from traditional stats
+5. **Tracking Data** is completely unavailable publicly
+6. **Player Name Romanization** varies significantly between sources
+
+### Technical Challenges
+
+1. **Website Protection**
+   - Some sites use Cloudflare or other anti-bot measures
+   - Need to respect rate limits and robots.txt
+   
+2. **Data Consistency**
+   - Different sites use different player ID systems
+   - Name romanization inconsistencies (Otani vs Ohtani)
+   - Statistical categorization differences
+
+3. **Historical Completeness**
+   - Some years have gaps in data
+   - Older seasons may only have basic stats
+   - Need to indicate data quality/completeness
+
+4. **Maintenance Burden**
+   - Websites change structure
+   - New anti-scraping measures
+   - Keeping multiple scrapers updated
+
+---
+
+## Proposed Implementation Approaches for Historical NPB Data
+
+### Approach 1: Static Dataset Import + Modern Scraping (RECOMMENDED)
+
+**Overview**: Import historical data from existing datasets and scrape only recent seasons
+
+**Architecture**:
+```
+src/npb/
+├── providers/
+│   ├── historical_provider.py    # Query local historical database
+│   ├── scraper_provider.py       # Existing (for 2005+ data)
+│   └── composite_provider.py     # Combines historical + modern
+├── data/
+│   ├── import/
+│   │   ├── npb_db_importer.py  # Import from npb-db SQLite
+│   │   ├── csv_importer.py     # Import from CSV files
+│   │   └── json_importer.py    # Import from JSON datasets
+│   ├── historical.db            # SQLite with all historical data
+│   └── metrics/
+│       ├── calculator.py        # Calculate FIP, basic WAR
+│       └── constants.py         # NPB-specific constants
+└── scrapers/
+    └── (existing scrapers for modern data)
+```
+
+**Implementation Steps**:
+1. Download historical datasets (npb-db, CSV compilations)
+2. Create unified schema for historical data
+3. Import all data into local SQLite database
+4. Build historical provider to query this database
+5. Create composite provider that uses:
+   - Historical provider for data before 2005
+   - Existing scrapers for 2005+
+6. Implement metrics calculator for advanced stats
+
+**Pros**:
+- Most reliable approach for historical data
+- No web scraping needed for historical stats
+- Fast query performance
+- Can calculate our own advanced metrics
+
+**Cons**:
+- Initial data import effort
+- Need to find/validate historical datasets
+- Static data (no real-time historical updates)
+
+### Approach 2: Multi-Site Japanese Scraper Network
+
+**Overview**: Build scrapers for multiple Japanese statistical sites
+
+**Target Sites**:
+1. **1point02.jp** - Comprehensive stats including some advanced metrics
+2. **yakyubaka.com** - Extensive historical database
+3. **Yahoo! Japan Sports** - Less likely to block scrapers
+4. **Stats Crew** - English-language Japanese baseball stats
+
+**Architecture**:
+```
+src/npb/
+├── scrapers/
+│   ├── one_point_zero_two.py   # 1point02.jp scraper
+│   ├── yakyu_baka.py           # yakyubaka.com scraper
+│   ├── yahoo_sports_jp.py      # Yahoo Japan scraper
+│   └── stats_crew.py           # Stats Crew scraper
+├── providers/
+│   └── multi_source_provider.py # Aggregates multiple scrapers
+├── utils/
+│   ├── japanese_parser.py      # Handle Japanese text/encoding
+│   ├── name_normalizer.py      # Handle romanization variants
+│   └── data_reconciler.py      # Merge conflicting data
+└── cache/
+    └── historical_cache.py      # Aggressive caching for historical
+```
+
+**Key Features**:
+- Fallback chain when one site is unavailable
+- Japanese text parsing and translation
+- Fuzzy name matching for romanization issues
+- Data reconciliation when sources conflict
+
+**Pros**:
+- Access to most comprehensive data
+- Can get some calculated Japanese advanced metrics
+- Redundancy across multiple sources
+
+**Cons**:
+- Complex to maintain multiple scrapers
+- Japanese language challenges
+- Sites may block or change structure
+
+### Approach 3: Community Repository Integration
+
+**Overview**: Use and contribute to open-source NPB data repositories
+
+**Primary Sources**:
+- armstjc/Nippon-Baseball-Data-Repository (JSON data)
+- npb-db project (SQLite database)
+- Various CSV compilations on GitHub
+
+**Architecture**:
+```
+src/npb/
+├── providers/
+│   └── repository_provider.py   # Interface to community data
+├── sync/
+│   ├── github_sync.py          # Sync with GitHub repos
+│   └── data_updater.py         # Periodic updates
+├── contributions/
+│   ├── data_validator.py       # Validate our additions
+│   └── export_formatter.py     # Format data for contribution
+└── local_store/
+    └── repository_cache.db      # Local copy of all data
+```
+
+**Workflow**:
+1. Clone/download community repositories
+2. Import into structured local database
+3. Periodically sync updates
+4. Calculate missing advanced metrics
+5. Contribute improvements back to community
+
+**Pros**:
+- Leverages existing community work
+- Can contribute improvements
+- Already structured data (JSON/CSV)
+
+**Cons**:
+- Depends on community maintenance
+- May have data gaps
+- Limited to what repositories provide
+
+### Approach 4: Hybrid Progressive Enhancement
+
+**Overview**: Start simple and progressively add data sources
+
+**Phase 1 - Basic Historical (Week 1)**:
+- Import one good historical dataset (npb-db)
+- Support basic queries for historical players
+- Traditional stats only
+
+**Phase 2 - Enhanced Metrics (Week 2-3)**:
+- Add metrics calculator (FIP, basic WAR)
+- Import additional datasets for validation
+- Add data quality indicators
+
+**Phase 3 - Japanese Sources (Week 4-5)**:
+- Add 1-2 Japanese site scrapers
+- Focus on sites with advanced metrics
+- Handle Japanese language content
+
+**Phase 4 - Full Integration (Week 6+)**:
+- Combine all sources
+- Add commercial API support option
+- Complete documentation
+
+---
+
+## Recommended Advanced Metrics Implementation
+
+### Metrics We CAN Calculate:
+1. **FIP (Fielding Independent Pitching)**
+   ```python
+   # NPB-specific FIP
+   def calculate_npb_fip(hr, bb, hbp, k, ip):
+       # NPB constant is different from MLB (around 3.10-3.20)
+       NPB_FIP_CONSTANT = 3.15  
+       return ((13*hr + 3*(bb+hbp) - 2*k) / ip) + NPB_FIP_CONSTANT
+   ```
+
+2. **wOBA (Weighted On-Base Average)**
+   ```python
+   # NPB linear weights (approximate, need refinement)
+   NPB_WEIGHTS = {
+       'bb': 0.69,
+       'hbp': 0.72,
+       '1b': 0.88,
+       '2b': 1.24,
+       '3b': 1.56,
+       'hr': 1.95
+   }
+   ```
+
+3. **Basic WAR**
+   - Position player: Batting Runs + Baserunning + Fielding + Positional + Replacement
+   - Pitcher: Based on FIP and innings pitched
+   - Use simplified version without defensive metrics
+
+4. **Park-Adjusted Stats (OPS+, ERA+)**
+   - Calculate park factors from historical data
+   - Adjust for NPB's unique ballparks
+
+### Metrics We CANNOT Provide:
+- Exit Velocity
+- Launch Angle  
+- Spin Rate
+- Hard Hit Rate
+- xWOBA, xBA, xSLG
+- Pitch movement data
+- Sprint speed
+
+### Data Quality Indicators:
+```python
+class DataQuality(Enum):
+    COMPLETE = "complete"      # All stats available
+    BASIC = "basic"           # Traditional stats only
+    PARTIAL = "partial"       # Some stats missing
+    ESTIMATED = "estimated"   # Calculated/inferred
+```
+
+---
+
+## Final Recommendation
+
+**Implement Approach 1 (Static Dataset Import + Modern Scraping) because:**
+
+1. **Most Reliable** - Historical data won't change, so static import is perfect
+2. **Best Performance** - Local database queries are fast
+3. **Maintainable** - Only need to maintain scrapers for recent seasons
+4. **Extensible** - Can add more data sources later
+5. **Quality Control** - Can validate and clean data during import
+
+**Implementation Priority:**
+1. Find and download best historical datasets (npb-db, CSV files)
+2. Create import scripts and unified database schema
+3. Build historical provider with caching
+4. Add metrics calculator for FIP and basic WAR
+5. Create composite provider combining historical + modern
+6. Document limitations clearly (no tracking data)
+7. Add examples showing what's available vs. MLB
+
+**Success Metrics:**
+- Can retrieve full career stats for historical players (like Ichiro 1992-2000)
+- Calculate basic advanced metrics (FIP, simple WAR)
+- Clear documentation about what metrics are/aren't available
+- Fast query performance (<100ms for career stats)
+- Easy to add new data sources later

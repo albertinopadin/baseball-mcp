@@ -1,0 +1,1 @@
+"""NPB metrics calculation module."""

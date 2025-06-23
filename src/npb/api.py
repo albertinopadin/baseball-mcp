@@ -5,6 +5,7 @@ import logging
 
 from .providers.base import NPBDataProvider
 from .providers.scraper_provider import ScraperProvider
+from .providers.composite_provider import CompositeProvider
 from cache_utils import cache_result
 
 logger = logging.getLogger(__name__)
@@ -13,13 +14,19 @@ logger = logging.getLogger(__name__)
 class NPBAPI:
     """High-level API for NPB data access."""
     
-    def __init__(self, provider: Optional[NPBDataProvider] = None):
+    def __init__(self, provider: Optional[NPBDataProvider] = None, use_historical: bool = True):
         """Initialize NPB API with a data provider.
         
         Args:
-            provider: Data provider instance (defaults to ScraperProvider)
+            provider: Data provider instance (defaults to CompositeProvider)
+            use_historical: Whether to include historical data (default True)
         """
-        self.provider = provider or ScraperProvider()
+        if provider:
+            self.provider = provider
+        elif use_historical:
+            self.provider = CompositeProvider()
+        else:
+            self.provider = ScraperProvider()
     
     @cache_result(ttl_hours=24)  # 24 hour cache
     async def search_player(self, name: str) -> str:
