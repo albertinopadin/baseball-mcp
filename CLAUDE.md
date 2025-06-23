@@ -187,13 +187,16 @@ Use `get_available_sports()` to see all available leagues and their IDs.
 To access NPB (Japanese baseball) data:
 - Use `search_npb_player()` to find players
 - Player IDs from search results can be used with `get_npb_player_stats()`
-- Season parameter is optional (defaults to all seasons)
+- Season parameter is optional (defaults to current season)
 - Handles name variations automatically (e.g., Ohtani/Otani)
+- Supports ID format variations (e.g., "otani-000sho", "otani,_shohei")
 
 Example NPB queries:
 - Search for player: `search_npb_player("Shohei Ohtani")`
-- Get 2017 stats: `get_npb_player_stats("otani,_shohei", "2017")`
+- Get 2017 stats: `get_npb_player_stats("otani-000sho", "2017")`
 - Get all NPB teams: `get_npb_teams()`
+
+Note: The NPB integration uses web scraping from the official NPB statistics site (npb.jp) and handles various player ID formats for compatibility.
 
 ## Known Limitations
 - ~~No caching mechanism (each request hits the API)~~ ✅ Fixed in v0.0.4
@@ -223,6 +226,10 @@ Example NPB queries:
 
 ## Version History
 - v0.0.8: Added NPB (Japanese baseball) support with web scraping from official NPB site
+  - Fixed player ID format handling for NPB stats retrieval
+  - Added support for name variations (Ohtani/Otani)
+  - Implemented season-by-season stats retrieval
+  - Enhanced web scraping reliability
 - v0.0.7: Added minor league example screenshot, documentation improvements
 - v0.0.6: Added full minor league support with sport IDs, new get_available_sports tool
 - v0.0.5: Refactored code into separate modules (mlb_stats_api.py, statcast_api.py), improved testing

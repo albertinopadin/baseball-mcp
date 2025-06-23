@@ -142,8 +142,13 @@ class NPBOfficialScraper(BaseScraper):
                         # Team is usually in the third cell
                         team_name = cells[2].text.strip() if len(cells) > 2 else ""
                         
+                        # Use consistent ID format: lastname,_firstname (lowercase)
+                        if not player_id:
+                            # Convert "Otani, Shohei" to "otani,_shohei"
+                            player_id = player_name.lower().replace(" ", "_")
+                        
                         players.append({
-                            "id": player_id or player_name.replace(" ", "_").lower(),
+                            "id": player_id,
                             "name_english": player_name,
                             "url": urljoin(self.base_url, player_url) if player_url else "",
                             "team": team_name,

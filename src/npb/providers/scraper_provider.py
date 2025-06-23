@@ -88,9 +88,30 @@ class ScraperProvider(NPBDataProvider):
             player_batting = None
             player_pitching = None
             
-            # Handle name variations (e.g., "otani" vs "ohtani")
+            # Handle name variations and ID format differences
             player_id_lower = player_id.lower()
             player_id_variations = [player_id_lower]
+            
+            # Handle different ID formats
+            # "otani-000sho" -> try "otani,_shohei" format
+            if "-" in player_id_lower:
+                # Extract the name part before the dash
+                name_part = player_id_lower.split("-")[0]
+                # Try common firstname variations
+                if name_part == "otani" or name_part == "ohtani":
+                    player_id_variations.extend([
+                        "otani,_shohei",
+                        "ohtani,_shohei",
+                        "otani_shohei",
+                        "ohtani_shohei"
+                    ])
+            
+            # Also handle direct comma format
+            if "," in player_id_lower:
+                player_id_variations.append(player_id_lower.replace(",_", "_"))
+                player_id_variations.append(player_id_lower.replace(",", "_"))
+            
+            # Handle ohtani/otani variations
             if "ohtani" in player_id_lower:
                 player_id_variations.append(player_id_lower.replace("ohtani", "otani"))
             elif "otani" in player_id_lower:

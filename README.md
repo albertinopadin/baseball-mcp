@@ -58,9 +58,11 @@ It allows you to search for players, teams, view schedules, check standings, and
 - **NEW: Full support for Nippon Professional Baseball** including:
   - Central League and Pacific League teams
   - Player search and statistics retrieval
-  - Batting and pitching statistics
-  - Historical player data
-- Example: Get Shohei Ohtani's NPB statistics before his MLB career
+  - Season-by-season batting and pitching statistics
+  - Historical player data from official NPB statistics
+  - Name variation handling (e.g., Ohtani/Otani)
+  - All 12 NPB teams supported
+- Example: Get Shohei Ohtani's complete NPB career statistics (2013-2017)
 
 ## Installation
 
@@ -447,7 +449,7 @@ Get NPB player statistics for a specific season or career.
 {
   "tool": "get_npb_player_stats",
   "arguments": {
-    "player_id": "otani,_shohei",
+    "player_id": "otani-000sho",
     "season": "2017"
   }
 }
