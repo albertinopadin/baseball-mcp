@@ -8,7 +8,7 @@ version = "0.0.7"
 description = "MCP server for MLB baseball statistics"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = ["httpx>=0.28.1", "mcp[cli]>=1.9.4", "pybaseball>=2.2.7"]
+dependencies = ["httpx>=0.28.1", "mcp[cli]>=1.9.4", "pybaseball>=2.2.7", "beautifulsoup4>=4.12.0"]
 
 [project.scripts]
 baseball-mcp = "baseball_mcp_server:main"

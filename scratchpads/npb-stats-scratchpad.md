@@ -680,3 +680,50 @@ npb_api = NPBAPI(SportradarProvider(api_key="..."))
 3. Build Baseball-Reference scraper for players
 4. Add first MCP tool (search_npb_player)
 5. Test end-to-end with Claude Desktop
+
+---
+
+## Implementation Update (2025-06-23)
+
+### Completed:
+- ✅ Created NPB module structure with provider pattern
+- ✅ Implemented base provider interface
+- ✅ Built Baseball-Reference scraper
+- ✅ Added NPB tools to MCP server
+- ✅ Basic player search functionality works
+
+### Issue Discovered: Cloudflare Protection
+
+Baseball-Reference uses Cloudflare protection which blocks automated scraping:
+- Returns 403 Forbidden status
+- Shows "Enable JavaScript and cookies to continue" page
+- Makes direct scraping impossible without browser automation
+
+### Alternative Approaches:
+
+1. **Use Different Data Source**
+   - NPB official site (npb.jp) might not have Cloudflare
+   - Other Japanese baseball sites
+   - Focus on sites without anti-bot protection
+
+2. **Browser Automation**
+   - Use Selenium or Playwright
+   - Much slower and resource-intensive
+   - Not ideal for MCP server use case
+
+3. **Cached/Static Data**
+   - Use pre-scraped datasets
+   - armstjc/Nippon-Baseball-Data-Repository
+   - Limited to historical data
+
+4. **Hybrid with Manual Updates**
+   - Manual periodic data collection
+   - Store in local database
+   - Not real-time but practical
+
+### Recommended Next Steps:
+
+1. Test npb.jp/eng/ for Cloudflare protection
+2. If blocked, pivot to using community data repositories
+3. Consider implementing a local database approach
+4. Document limitations clearly for users

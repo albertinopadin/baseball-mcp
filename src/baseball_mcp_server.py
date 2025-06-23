@@ -3,6 +3,7 @@ import mlb_stats_api
 import statcast_api
 import sports_api
 from sports_constants import MLB, TRIPLE_A, DOUBLE_A, HIGH_A, SINGLE_A, ROOKIE
+from npb import NPBAPI
 
 try:
     from importlib.metadata import version
@@ -11,6 +12,9 @@ except Exception:
     VERSION = "0.0.7"  # Fallback version
 
 mcp = FastMCP("BaseballMcp")
+
+# Initialize NPB API
+npb_api = NPBAPI()
 
 
 # Sports/League information
@@ -250,6 +254,57 @@ async def get_player_statcast_pitching(
         season: Season year (e.g., "2024"). If not provided with dates, defaults to current season
     """
     return await statcast_api.get_player_statcast_pitching(player_name, start_date, end_date, season)
+
+
+# NPB (Nippon Professional Baseball) tools
+@mcp.tool()
+async def search_npb_player(search_str: str) -> str:
+    """Search for NPB (Japanese baseball) players by name.
+    
+    Args:
+        search_str: Name of player to search for (English or romanized Japanese)
+    
+    Returns player information including:
+    - Player ID for use with get_npb_player_stats
+    - Position and years active
+    - Team information when available
+    """
+    return await npb_api.search_player(search_str)
+
+
+@mcp.tool()
+async def get_npb_player_stats(
+    player_id: str,
+    season: str | None = None,
+    stats_type: str = "season"
+) -> str:
+    """Get NPB player statistics including traditional and available advanced metrics.
+    
+    Args:
+        player_id: Player ID from search_npb_player
+        season: Season year (e.g., "2023"). If not provided, returns career stats
+        stats_type: Type of statistics (currently only "season" supported)
+    
+    Returns batting or pitching statistics including:
+    - Traditional stats (AVG, HR, RBI, ERA, etc.)
+    - Some advanced metrics when available (OPS+, ERA+, WAR)
+    
+    Note: NPB does not have Statcast-style tracking data publicly available.
+    """
+    return await npb_api.get_player_stats(player_id, season, stats_type)
+
+
+@mcp.tool()
+async def get_npb_teams() -> str:
+    """Get list of all NPB teams.
+    
+    Returns information about all 12 NPB teams:
+    - Central League (6 teams)
+    - Pacific League (6 teams)
+    
+    Includes team names in English and Japanese, cities, and abbreviations.
+    """
+    return await npb_api.get_teams()
 
 
 def main():
