@@ -191,7 +191,9 @@ Get statistics for a specific player (MLB, Minor Leagues, or NPB).
 **Parameters:**
 
 - `person_id` (integer/string, required): Unique Player Identifier (int for MLB/MiLB, string for NPB)
-- `stats` (string, required): Type of statistics (e.g., 'season', 'career', 'yearByYear', 'gameLog')
+- `stats` (string, required): Type of statistics:
+  - MLB/MiLB: 'season', 'career', 'yearByYear', 'gameLog'
+  - NPB: 'batting', 'pitching', or 'yearByYear' (for season-by-season breakdown)
 - `season` (string, optional): Season of play
 - `sport_id` (integer, optional): Sport ID - Use 1 for MLB (default), or:
   - 11: Triple-A (AAA)
@@ -576,6 +578,19 @@ Then get their career stats:
   "arguments": {
     "person_id": "br_oh----000sad",
     "stats": "batting",
+    "sport_id": 31
+  }
+}
+```
+
+#### Get NPB Year-by-Year Stats
+For season-by-season breakdown of NPB careers:
+```json
+{
+  "tool": "get_player_stats",
+  "arguments": {
+    "person_id": "br_cabrer001ale",
+    "stats": "yearByYear",
     "sport_id": 31
   }
 }

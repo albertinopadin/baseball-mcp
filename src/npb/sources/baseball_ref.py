@@ -339,6 +339,35 @@ class BaseballReferenceNPBSource(AbstractNPBDataSource):
         
         return await self._parse_player_stats_page(player_url, br_player_id, season, stats_type)
     
+    async def get_player_year_by_year_stats(
+        self,
+        player_id: str,
+        stats_type: str = "batting"
+    ) -> List[NPBPlayerStats]:
+        """Get year-by-year NPB statistics for a player.
+        
+        Args:
+            player_id: Player ID (br_{id} format)
+            stats_type: "batting" or "pitching"
+            
+        Returns:
+            List of NPBPlayerStats objects, one for each NPB season
+        """
+        # Extract BR player ID from our unified ID
+        if player_id.startswith("br_"):
+            br_player_id = player_id[3:]
+        else:
+            br_player_id = player_id
+        
+        # Remove 'mlb_' prefix if present
+        if br_player_id.startswith("mlb_"):
+            br_player_id = br_player_id[4:]
+        
+        # Construct register page URL
+        player_url = f"{self.base_url}/register/player.fcgi?id={br_player_id}"
+        
+        return await self._parse_player_year_by_year_stats(player_url, br_player_id, stats_type)
+    
     @cache_result(ttl_hours=0)  # Permanent cache for historical data
     async def _parse_player_stats_page(
         self,
@@ -617,6 +646,138 @@ class BaseballReferenceNPBSource(AbstractNPBDataSource):
             stats.ops = round(stats.on_base_percentage + stats.slugging_percentage, 3)
         
         return stats
+    
+    async def _parse_player_year_by_year_stats(
+        self,
+        url: str,
+        player_id: str,
+        stats_type: str
+    ) -> List[NPBPlayerStats]:
+        """Parse year-by-year NPB statistics from a Baseball Reference page.
+        
+        Args:
+            url: Player page URL
+            player_id: Baseball Reference player ID
+            stats_type: "batting" or "pitching"
+            
+        Returns:
+            List of NPBPlayerStats objects for each NPB season
+        """
+        page = await self._fetch_page(url)
+        if not page:
+            return []
+        
+        # Find all tables on the page
+        tables = page.find_all('table')
+        yearly_stats = []
+        
+        # Look for the appropriate stats table
+        for table in tables:
+            table_id = table.get('id', '').lower()
+            
+            # Check if this is the right type of table
+            if stats_type == "batting" and ('standard_batting' == table_id or 'batting_foreign' in table_id):
+                # Check if this table contains Japan/NPB data
+                table_html = str(table)
+                if 'Japan' in table_html or 'NPB' in table_html or any(team in table_html for team in ['Giants', 'Tigers', 'Hawks', 'Carp']):
+                    yearly_stats.extend(self._parse_batting_table_year_by_year(table, player_id))
+                    break
+            elif stats_type == "pitching" and ('standard_pitching' == table_id or 'pitching_foreign' in table_id):
+                table_html = str(table)
+                if 'Japan' in table_html or 'NPB' in table_html:
+                    yearly_stats.extend(self._parse_pitching_table_year_by_year(table, player_id))
+                    break
+        
+        return yearly_stats
+    
+    def _parse_batting_table_year_by_year(self, table, player_id: str) -> List[NPBPlayerStats]:
+        """Parse year-by-year batting statistics from a table.
+        
+        Args:
+            table: BeautifulSoup table element
+            player_id: Player ID for the stats
+            
+        Returns:
+            List of NPBPlayerStats objects for each season
+        """
+        yearly_stats = []
+        
+        try:
+            # Find header row to map columns
+            headers = []
+            header_row = table.find('thead')
+            if header_row:
+                headers = [th.get_text().strip() for th in header_row.find_all('th')]
+            else:
+                # Try first row
+                first_row = table.find('tr')
+                if first_row:
+                    headers = [th.get_text().strip() for th in first_row.find_all(['th', 'td'])]
+            
+            if not headers:
+                return []
+            
+            # Create column index map
+            col_map = {header.upper(): idx for idx, header in enumerate(headers)}
+            
+            # Find data rows
+            tbody = table.find('tbody')
+            rows = tbody.find_all('tr') if tbody else table.find_all('tr')[1:]
+            
+            for row in rows:
+                cells = row.find_all(['td', 'th'])
+                if not cells:
+                    continue
+                
+                # Check year column (usually first column)
+                year_text = cells[0].get_text().strip()
+                
+                # Skip non-year rows (totals, etc)
+                if not year_text.isdigit():
+                    continue
+                
+                # Check if this is an NPB season
+                if len(cells) > 5:
+                    # Check league column (index 4) and level column (index 5)
+                    league_text = cells[4].get_text().strip() if len(cells) > 4 else ""
+                    level_text = cells[5].get_text().strip() if len(cells) > 5 else ""
+                    
+                    # Check for Japan leagues or Fgn level
+                    if any(jp in league_text for jp in ['JPP', 'JPC', 'NPB']) or level_text == 'Fgn':
+                        # This is an NPB season
+                        season_stats = self._create_batting_stats(cells, col_map, player_id, int(year_text))
+                        
+                        # Add team info if available
+                        if len(cells) > 3:
+                            team_text = cells[3].get_text().strip()
+                            if team_text and team_text != '-':
+                                # Create a minimal team object
+                                from ..models import NPBTeam, NPBLeague
+                                season_stats.team = NPBTeam(
+                                    id=f"br_{team_text.lower().replace(' ', '_')}",
+                                    name_english=team_text,
+                                    source="baseball_reference"
+                                )
+                                # Try to determine league from league column
+                                if 'JPC' in league_text:
+                                    season_stats.team.league = NPBLeague.CENTRAL
+                                elif 'JPP' in league_text:
+                                    season_stats.team.league = NPBLeague.PACIFIC
+                        
+                        yearly_stats.append(season_stats)
+            
+        except Exception as e:
+            print(f"Error parsing year-by-year batting table: {e}")
+        
+        return yearly_stats
+    
+    def _parse_pitching_table_year_by_year(self, table, player_id: str) -> List[NPBPlayerStats]:
+        """Parse year-by-year pitching statistics from a table.
+        
+        Currently not implemented - returns empty list.
+        """
+        # TODO: Implement pitching year-by-year parsing
+        return []
     
     async def get_teams(self, season: Optional[int] = None) -> List[NPBTeam]:
         """Get NPB teams from Baseball Reference.

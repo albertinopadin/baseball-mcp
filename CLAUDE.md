@@ -212,6 +212,11 @@ Use `get_available_sports()` to see all available leagues and their IDs.
 - Run example test scripts in `test/` directory
 
 ## Version History
+- v0.0.11: Added NPB year-by-year statistics support
+  - Implemented season-by-season NPB stats retrieval
+  - Added yearByYear option for NPB player stats
+  - Parse individual seasons from Baseball Reference tables
+  - Includes team information for each season
 - v0.0.10: Improved NPB player search with smart selection
   - Automatically selects players with NPB stats when multiple matches exist
   - Handles MLB players who also played in NPB (e.g., Alex Cabrera)

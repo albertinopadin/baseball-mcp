@@ -9,7 +9,7 @@ try:
     from importlib.metadata import version
     VERSION = version("baseball-mcp")
 except Exception:
-    VERSION = "0.0.10"  # Fallback version
+    VERSION = "0.0.11"  # Fallback version
 
 mcp = FastMCP("BaseballMcp")
 
@@ -71,8 +71,9 @@ async def get_player_stats(
     
     Args:
         person_id: Unique Player Identifier (int for MLB/MiLB, str for NPB)
-        stats: Type of statistics (e.g., 'season', 'career', 'yearByYear', 'gameLog')
-               For NPB: 'batting' or 'pitching'
+        stats: Type of statistics:
+               - MLB/MiLB: 'season', 'career', 'yearByYear', 'gameLog'
+               - NPB: 'batting', 'pitching', or 'yearByYear' (for season-by-season breakdown)
         season: Season of play (optional)
         sport_id: Sport ID - Use 1 for MLB (default), minor league IDs, or:
                   - 11: Triple-A (AAA)
@@ -85,7 +86,7 @@ async def get_player_stats(
     
     Note: For minor league stats, you must specify the exact sport_id for the level.
     Career stats only available for MLB (sport_id=1).
-    For NPB, use string player_id and stats should be 'batting' or 'pitching'.
+    For NPB, use string player_id. Use stats='yearByYear' to get season-by-season NPB stats.
     """
     if sport_id == NPB:
         if isinstance(person_id, int):
@@ -94,6 +95,11 @@ async def get_player_stats(
         npb_stats_type = "batting" if group != "pitching" else "pitching"
         if stats in ["batting", "pitching"]:
             npb_stats_type = stats
+        
+        # Check for special year-by-year request
+        if stats == "yearByYear":
+            return await npb_api.get_npb_player_year_by_year_stats(person_id, npb_stats_type)
+        
         return await npb_api.get_npb_player_stats(person_id, int(season) if season else None, npb_stats_type)
     return await mlb_stats_api.get_player_stats(person_id, stats, season, sport_id, group)
 

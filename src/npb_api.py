@@ -269,6 +269,66 @@ async def get_npb_player_stats(
         return f"Error retrieving NPB player stats: {str(e)}"
 
 
+async def get_npb_player_year_by_year_stats(
+    player_id: str,
+    stats_type: str = "batting"
+) -> str:
+    """Get year-by-year NPB player statistics.
+    
+    Args:
+        player_id: Player ID
+        stats_type: "batting" or "pitching"
+        
+    Returns:
+        Formatted year-by-year statistics
+    """
+    try:
+        aggregator = _get_npb_aggregator()
+        
+        # Check if the source supports year-by-year stats
+        # Currently only Baseball Reference does
+        if player_id.startswith("br_"):
+            source = aggregator.sources.get('baseball_reference')
+            if source and hasattr(source, 'get_player_year_by_year_stats'):
+                yearly_stats = await source.get_player_year_by_year_stats(player_id, stats_type)
+                
+                if not yearly_stats:
+                    return f"No year-by-year statistics found for NPB player ID '{player_id}'"
+                
+                # Format the results
+                result = f"NPB Year-by-Year {stats_type.capitalize()} Statistics:\n"
+                result += f"Player ID: {player_id}\n"
+                result += f"Total Seasons: {len(yearly_stats)}\n\n"
+                
+                for stats in yearly_stats:
+                    result += f"--- {stats.season} ---\n"
+                    if stats.team:
+                        result += f"Team: {stats.team.name_english}\n"
+                    result += f"Games: {stats.games or 'N/A'}\n"
+                    
+                    if stats_type == "batting":
+                        result += f"AVG: {stats.batting_average or 'N/A'} | "
+                        result += f"HR: {stats.home_runs or 'N/A'} | "
+                        result += f"RBI: {stats.rbi or 'N/A'} | "
+                        result += f"H: {stats.hits or 'N/A'} | "
+                        result += f"OPS: {stats.ops or 'N/A'}\n"
+                    else:  # pitching
+                        result += f"W-L: {stats.wins or 0}-{stats.losses or 0} | "
+                        result += f"ERA: {stats.era or 'N/A'} | "
+                        result += f"SV: {stats.saves or 'N/A'} | "
+                        result += f"SO: {stats.strikeouts_pitched or 'N/A'}\n"
+                    
+                    result += "\n"
+                
+                return result
+        
+        # For other sources, fall back to showing they don't support year-by-year
+        return f"Year-by-year statistics are not available for this player source. Only Baseball Reference (br_) player IDs support year-by-year stats."
+        
+    except Exception as e:
+        return f"Error retrieving year-by-year NPB player stats: {str(e)}"
+
+
 async def get_npb_teams(season: Optional[int] = None) -> str:
     """Get all NPB teams.
     
