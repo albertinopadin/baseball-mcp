@@ -56,6 +56,8 @@ This MCP server provides comprehensive access to MLB, Minor League Baseball, and
   - Player statistics (traditional and advanced metrics)
   - Japanese name search with romanization support
   - Multi-source data aggregation for comprehensive coverage
+  - **Data Availability: 2008-present only**
+  - **Note: Only shows players meeting minimum plate appearances (3.1 × team games)**
 
 ## Installation
 
@@ -562,3 +564,4 @@ This server uses:
 
 - **MLB Stats API** (statsapi.mlb.com) for player, team, and game data
 - **Baseball Savant** (via pybaseball) for Statcast metrics including exit velocity, launch angle, and spin rate
+- **NPB Official Site** (npb.jp) for Japanese baseball statistics (2008-present)

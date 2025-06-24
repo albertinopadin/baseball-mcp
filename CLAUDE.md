@@ -198,7 +198,9 @@ Use `get_available_sports()` to see all available leagues and their IDs.
   - Web scraping dependent (may break if site structure changes)
   - Limited to data available on public websites
   - Advanced metrics require FanGraphs (not fully implemented)
-  - No historical data beyond recent seasons
+  - **Historical data only available from 2008-present**
+  - **Batting stats only show players meeting minimum plate appearances (3.1 × team games)**
+  - Players who were primarily pitchers (like Ohtani) won't appear in batting stats
   - Player IDs are generated, not official
 
 ## Debugging Tips

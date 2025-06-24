@@ -171,7 +171,6 @@ class NPBOfficialSource(AbstractNPBDataSource):
         
         return players
     
-    @cache_result(ttl_hours=24)
     async def _parse_batting_stats_page(
         self, url: str, search_name: str, year: int, league: str
     ) -> List[NPBPlayer]:
@@ -196,7 +195,7 @@ class NPBOfficialSource(AbstractNPBDataSource):
         tables = page.find_all('table')
         
         # The stats table is usually the first large table
-        for table in tables:
+        for table_idx, table in enumerate(tables):
             rows = table.find_all('tr')
             
             # Skip if too few rows
@@ -210,10 +209,18 @@ class NPBOfficialSource(AbstractNPBDataSource):
             # Look for batting stats headers
             header_text = ' '.join([h.text.strip() for h in headers])
             if not any(stat in header_text for stat in ['AVG', 'G', 'PA', 'AB']):
-                continue
+                # Try the second row as header (NPB site structure)
+                if len(rows) > 1:
+                    header_row = rows[1]
+                    headers = header_row.find_all(['td', 'th'])
+                    header_text = ' '.join([h.text.strip() for h in headers])
+                    if not any(stat in header_text for stat in ['AVG', 'G', 'PA', 'AB']):
+                        continue
+                else:
+                    continue
             
             # Process data rows
-            for row in rows[1:]:
+            for row_idx, row in enumerate(rows[1:]):
                 cells = row.find_all(['td'])
                 if len(cells) < 10:  # Need enough columns for stats
                     continue
@@ -323,7 +330,7 @@ class NPBOfficialSource(AbstractNPBDataSource):
                 url = f"{self.base_url}/{year}/stats/pit_{league_code}.html"
             
             stats = await self._parse_stats_from_page(
-                url, player_name, year, league, stats_type
+                url, player_id, player_name, year, league, stats_type
             )
             
             if stats:
@@ -333,12 +340,13 @@ class NPBOfficialSource(AbstractNPBDataSource):
     
     @cache_result(ttl_hours=24)
     async def _parse_stats_from_page(
-        self, url: str, player_name: str, year: int, league: str, stats_type: str
+        self, url: str, player_id: str, player_name: str, year: int, league: str, stats_type: str
     ) -> Optional[NPBPlayerStats]:
         """Parse player statistics from a stats page.
         
         Args:
             url: URL of the stats page
+            player_id: Player ID to use in the result
             player_name: Player name to search for
             year: Season year
             league: League name
@@ -361,11 +369,16 @@ class NPBOfficialSource(AbstractNPBDataSource):
             
             # Find header row to map column indices
             header_row = None
-            for row in rows:
-                headers = row.find_all(['th'])
+            header_row_idx = -1
+            for idx, row in enumerate(rows):
+                headers = row.find_all(['td', 'th'])
                 if len(headers) > 10:  # Stats table should have many columns
-                    header_row = headers
-                    break
+                    # Check if this row contains stat headers
+                    header_text = ' '.join([h.text.strip() for h in headers])
+                    if any(stat in header_text for stat in ['AVG', 'G', 'PA', 'AB']):
+                        header_row = headers
+                        header_row_idx = idx
+                        break
             
             if not header_row:
                 continue
@@ -376,31 +389,34 @@ class NPBOfficialSource(AbstractNPBDataSource):
                 col_text = header.text.strip().upper()
                 col_map[col_text] = i
             
-            # Parse data rows
-            for row in rows[1:]:
-                cells = row.find_all(['td', 'th'])
+            # Parse data rows (skip header row)
+            for row in rows[header_row_idx+1:]:
+                cells = row.find_all(['td'])
                 if len(cells) < 10:
                     continue
                 
-                # Find player name
-                player_cell = None
-                for i in range(1, min(4, len(cells))):
-                    cell_text = cells[i].text.strip()
-                    if cell_text and not cell_text.isdigit():
-                        if self._normalize_name(cell_text) == normalized_search:
-                            player_cell = cells[i]
-                            break
+                # Player name is typically in column 1
+                if len(cells) < 2:
+                    continue
+                    
+                player_name_cell = cells[1].text.strip()
                 
-                if not player_cell:
+                # Check if this player matches our search
+                if not match_name(player_name, player_name_cell):
                     continue
                 
-                # Extract team
+                # Extract team - it's usually in column 2, in parentheses
                 team = None
                 team_abbr = None
-                for cell in cells[:5]:
-                    text = cell.text.strip()
-                    if text in self.team_mappings:
-                        team_abbr = text
+                if len(cells) > 2:
+                    team_text = cells[2].text.strip()
+                    # Remove parentheses if present
+                    if team_text.startswith('(') and team_text.endswith(')'):
+                        team_abbr = team_text[1:-1]
+                    elif team_text in self.team_mappings:
+                        team_abbr = team_text
+                    
+                    if team_abbr and team_abbr in self.team_mappings:
                         team_info = self.team_mappings[team_abbr]
                         team = NPBTeam(
                             id=f"npb_{team_abbr}",
@@ -410,17 +426,25 @@ class NPBOfficialSource(AbstractNPBDataSource):
                             source="npb_official",
                             source_id=team_abbr
                         )
-                        break
+                
+                # Adjust column map for actual data columns
+                # Since team is in column 2, stats start from column 3
+                adjusted_col_map = {}
+                for stat, idx in col_map.items():
+                    if idx >= 2:  # AVG and beyond
+                        adjusted_col_map[stat] = idx + 1  # Shift by 1 for team column
+                    else:
+                        adjusted_col_map[stat] = idx
                 
                 # Parse statistics based on type
                 if stats_type == "batting":
-                    stats = self._parse_batting_stats(cells, col_map)
+                    stats = self._parse_batting_stats(cells, adjusted_col_map)
                 else:
-                    stats = self._parse_pitching_stats(cells, col_map)
+                    stats = self._parse_pitching_stats(cells, adjusted_col_map)
                 
                 # Create stats object
                 player_stats = NPBPlayerStats(
-                    player_id=f"npb_{player_name.lower().replace(' ', '_')}_{year}",
+                    player_id=player_id,  # Use the provided player_id
                     season=year,
                     stats_type=stats_type,
                     team=team,

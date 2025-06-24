@@ -15,16 +15,15 @@ def _get_npb_aggregator():
     if npb_aggregator is None:
         # Import here to avoid circular imports
         from npb.aggregator import NPBDataAggregator
-        from npb.sources.npb_official import NPBOfficialSource
-        from npb.sources.fangraphs import FanGraphsNPBSource
+        # Import sources to ensure registration
+        from npb.sources import npb_official
+        try:
+            from npb.sources import fangraphs
+        except:
+            pass  # FanGraphs source may not be fully implemented
         
-        # Initialize sources
-        sources = [
-            NPBOfficialSource(),
-            FanGraphsNPBSource()
-        ]
-        
-        npb_aggregator = NPBDataAggregator(sources)
+        # Let aggregator use all registered sources
+        npb_aggregator = NPBDataAggregator()
     return npb_aggregator
 
 
@@ -208,8 +207,13 @@ async def get_npb_team_roster(
         Formatted team roster
     """
     try:
-        source = _get_npb_source()
-        roster = await source.get_team_roster(team_id, season)
+        aggregator = _get_npb_aggregator()
+        # Use the primary source for rosters
+        source_name = aggregator.source_priorities.get('team_roster', ['npb_official'])[0]
+        if source_name in aggregator.sources:
+            roster = await aggregator.sources[source_name].get_team_roster(team_id, season)
+        else:
+            return f"No source available for team rosters"
         
         if not roster:
             return f"No roster found for NPB team ID '{team_id}'"

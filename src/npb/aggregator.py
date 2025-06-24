@@ -25,7 +25,19 @@ class NPBDataAggregator:
                 if source_class:
                     self.sources[source_name] = source_class()
         else:
-            self.sources = {s.name: s for s in sources}
+            # Find registered name for each source
+            self.sources = {}
+            source_names = list_sources()
+            for source in sources:
+                # Match source by class type
+                for name in source_names:
+                    source_class = get_source(name)
+                    if source_class and isinstance(source, source_class):
+                        self.sources[name] = source
+                        break
+                else:
+                    # If not registered, use class name
+                    self.sources[source.__class__.__name__.lower()] = source
         
         # Default source priorities
         self.source_priorities = {
