@@ -23,7 +23,9 @@
       "WebFetch(domain:npbstats.com)",
       "WebFetch(domain:www.baseball-reference.com)",
       "mcp__baseball-mcp__search_npb_player",
-      "mcp__baseball-mcp__get_npb_player_stats"
+      "mcp__baseball-mcp__get_npb_player_stats",
+      "Bash(ls:*)",
+      "Bash(find:*)"
     ],
     "deny": []
   }

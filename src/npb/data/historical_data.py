@@ -43,6 +43,20 @@ HISTORICAL_PLAYERS = {
         "throws": "Right",
         "debut_date": "1938-04-29",
         "final_game": "1958-10-23"
+    },
+    "rhodes": {
+        "player_id": "rhodes-tuffy",
+        "name_english": "Karl Rhodes",
+        "name_japanese": "カール・ローズ",
+        "name_romanized_variants": ["Tuffy Rhodes", "Karl Rhodes", "Karl Derrick Rhodes", "Rhodes"],
+        "birth_date": "1968-08-21",
+        "birth_place": "Cincinnati, Ohio, USA",
+        "height": "183cm",
+        "weight": "79kg",
+        "bats": "Left",
+        "throws": "Right",
+        "debut_date": "1996-05-02",
+        "final_game": "2008-10-11"
     }
 }
 
@@ -88,6 +102,24 @@ KAWAKAMI_BATTING_STATS = [
     {"season": 1958, "team_id": "giants", "games": 125, "at_bats": 425, "runs": 58, "hits": 128, "doubles": 20, "triples": 1, "home_runs": 10, "rbis": 63, "batting_average": 0.301}
 ]
 
+# Tuffy Rhodes' NPB batting statistics (1996-2008)
+# Career: .286 AVG, 464 HR, 1269 RBI - Most HRs by foreign player in NPB history
+RHODES_BATTING_STATS = [
+    {"season": 1996, "team_id": "kintetsu", "games": 100, "at_bats": 333, "runs": 51, "hits": 87, "doubles": 18, "triples": 1, "home_runs": 20, "rbis": 58, "stolen_bases": 1, "walks": 30, "strikeouts": 84, "batting_average": 0.261, "on_base_percentage": 0.325, "slugging_percentage": 0.486},
+    {"season": 1997, "team_id": "kintetsu", "games": 115, "at_bats": 409, "runs": 61, "hits": 122, "doubles": 24, "triples": 0, "home_runs": 28, "rbis": 83, "stolen_bases": 4, "walks": 31, "strikeouts": 102, "batting_average": 0.298, "on_base_percentage": 0.349, "slugging_percentage": 0.560},
+    {"season": 1998, "team_id": "kintetsu", "games": 95, "at_bats": 353, "runs": 43, "hits": 103, "doubles": 14, "triples": 0, "home_runs": 22, "rbis": 69, "stolen_bases": 1, "walks": 29, "strikeouts": 85, "batting_average": 0.292, "on_base_percentage": 0.345, "slugging_percentage": 0.525},
+    {"season": 1999, "team_id": "kintetsu", "games": 131, "at_bats": 502, "runs": 82, "hits": 147, "doubles": 24, "triples": 0, "home_runs": 35, "rbis": 107, "stolen_bases": 3, "walks": 44, "strikeouts": 116, "batting_average": 0.293, "on_base_percentage": 0.348, "slugging_percentage": 0.544},
+    {"season": 2000, "team_id": "kintetsu", "games": 103, "at_bats": 378, "runs": 52, "hits": 98, "doubles": 13, "triples": 0, "home_runs": 22, "rbis": 60, "stolen_bases": 0, "walks": 27, "strikeouts": 92, "batting_average": 0.259, "on_base_percentage": 0.307, "slugging_percentage": 0.471},
+    {"season": 2001, "team_id": "kintetsu", "games": 140, "at_bats": 511, "runs": 107, "hits": 165, "doubles": 27, "triples": 0, "home_runs": 55, "rbis": 131, "stolen_bases": 5, "walks": 59, "strikeouts": 133, "batting_average": 0.323, "on_base_percentage": 0.390, "slugging_percentage": 0.691},
+    {"season": 2002, "team_id": "kintetsu", "games": 127, "at_bats": 448, "runs": 87, "hits": 134, "doubles": 23, "triples": 1, "home_runs": 40, "rbis": 103, "stolen_bases": 1, "walks": 53, "strikeouts": 126, "batting_average": 0.299, "on_base_percentage": 0.371, "slugging_percentage": 0.603},
+    {"season": 2003, "team_id": "kintetsu", "games": 140, "at_bats": 525, "runs": 96, "hits": 154, "doubles": 19, "triples": 1, "home_runs": 51, "rbis": 117, "stolen_bases": 1, "walks": 44, "strikeouts": 115, "batting_average": 0.293, "on_base_percentage": 0.346, "slugging_percentage": 0.597},
+    {"season": 2004, "team_id": "giants", "games": 88, "at_bats": 305, "runs": 36, "hits": 78, "doubles": 13, "triples": 0, "home_runs": 17, "rbis": 49, "stolen_bases": 0, "walks": 24, "strikeouts": 66, "batting_average": 0.256, "on_base_percentage": 0.309, "slugging_percentage": 0.469},
+    {"season": 2005, "team_id": "orix", "games": 126, "at_bats": 463, "runs": 73, "hits": 131, "doubles": 17, "triples": 0, "home_runs": 40, "rbis": 93, "stolen_bases": 3, "walks": 35, "strikeouts": 113, "batting_average": 0.283, "on_base_percentage": 0.332, "slugging_percentage": 0.578},
+    {"season": 2006, "team_id": "orix", "games": 114, "at_bats": 424, "runs": 67, "hits": 115, "doubles": 18, "triples": 0, "home_runs": 36, "rbis": 82, "stolen_bases": 2, "walks": 31, "strikeouts": 108, "batting_average": 0.271, "on_base_percentage": 0.320, "slugging_percentage": 0.556},
+    {"season": 2007, "team_id": "orix", "games": 111, "at_bats": 392, "runs": 47, "hits": 105, "doubles": 15, "triples": 0, "home_runs": 27, "rbis": 81, "stolen_bases": 0, "walks": 29, "strikeouts": 94, "batting_average": 0.268, "on_base_percentage": 0.316, "slugging_percentage": 0.510},
+    {"season": 2008, "team_id": "orix", "games": 47, "at_bats": 147, "runs": 18, "hits": 41, "doubles": 6, "triples": 0, "home_runs": 11, "rbis": 24, "stolen_bases": 0, "walks": 13, "strikeouts": 45, "batting_average": 0.279, "on_base_percentage": 0.335, "slugging_percentage": 0.544}
+]
+
 def populate_test_data(db):
     """Populate database with test data for our three legendary players."""
     # Insert players
@@ -113,12 +145,20 @@ def populate_test_data(db):
         stats['data_quality'] = 'complete'
         db.insert_batting_stats(stats)
     
+    for stats in RHODES_BATTING_STATS:
+        stats['player_id'] = 'rhodes-tuffy'
+        stats['data_source'] = 'historical_import'
+        stats['data_quality'] = 'complete'
+        db.insert_batting_stats(stats)
+    
     # Insert NPB teams
     teams = [
         {"team_id": "giants", "name_english": "Yomiuri Giants", "name_japanese": "読売ジャイアンツ", 
          "abbreviation": "YG", "league": "Central", "city": "Tokyo"},
         {"team_id": "orix", "name_english": "Orix BlueWave/Buffaloes", "name_japanese": "オリックス", 
-         "abbreviation": "ORX", "league": "Pacific", "city": "Kobe/Osaka"}
+         "abbreviation": "ORX", "league": "Pacific", "city": "Kobe/Osaka"},
+        {"team_id": "kintetsu", "name_english": "Kintetsu Buffaloes", "name_japanese": "近鉄バファローズ", 
+         "abbreviation": "KB", "league": "Pacific", "city": "Osaka"}
     ]
     
     for team in teams:
