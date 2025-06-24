@@ -48,8 +48,9 @@ This is an MCP (Model Context Protocol) server that provides access to Major Lea
 - **APIs**: 
   - MLB Stats API (statsapi.mlb.com) - Player, team, and game data
   - Baseball Savant (via pybaseball) - Statcast metrics
-  - NPB Official Website (npb.jp) - Japanese baseball data (web scraping)
-  - FanGraphs International (fangraphs.com) - NPB advanced metrics (web scraping)
+  - Baseball Reference (baseball-reference.com) - Historical NPB data (1936-present, web scraping)
+  - NPB Official Website (npb.jp) - Japanese baseball data (2008-present, web scraping)
+  - FanGraphs International (fangraphs.com) - NPB advanced metrics (placeholder implementation)
 - **Protocol**: MCP (Model Context Protocol)
 - **Key Dependencies**: httpx, pybaseball, pandas, beautifulsoup4
 
@@ -212,6 +213,9 @@ Use `get_available_sports()` to see all available leagues and their IDs.
 
 ## Version History
 - v0.0.9: Added Baseball Reference integration for historical NPB data (1936-present)
+  - Successfully tested with Ichiro Suzuki, Sadaharu Oh, Shohei Ohtani, Tetsuto Yamada
+  - Implemented smart search handling for MLB/NPB crossover players
+  - Fixed league detection for proper NPB season identification
 - v0.0.8: Added NPB (Nippon Professional Baseball) support with web scraping, Japanese name handling
 - v0.0.7: Added minor league example screenshot, documentation improvements
 - v0.0.6: Added full minor league support with sport IDs, new get_available_sports tool

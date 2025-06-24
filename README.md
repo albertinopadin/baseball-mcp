@@ -59,6 +59,12 @@ This MCP server provides comprehensive access to MLB, Minor League Baseball, and
     - **Baseball Reference**: Historical data (1936-present) for all NPB players
     - **NPB Official**: Current rosters and recent stats (2008-present)
   - **Historical Coverage**: Full career stats for legends like Sadaharu Oh (868 HRs)
+  
+#### Notable NPB Players Available:
+- **Legends**: Sadaharu Oh, Shigeo Nagashima, Katsuya Nomura, Isao Harimoto
+- **MLB Crossovers**: Ichiro Suzuki, Shohei Ohtani, Hideki Matsui, Yu Darvish, Hideo Nomo
+- **Current Stars**: Munetaka Murakami, Tetsuto Yamada, Yoshinobu Yamamoto
+- **Complete career statistics** including year-by-year breakdowns
 
 ## Installation
 
@@ -547,6 +553,41 @@ baseball-mcp/
     "stats": "batting",
     "sport_id": 31,
     "season": "2024"
+  }
+}
+```
+
+#### Get Historical NPB Stats (Legends)
+```json
+{
+  "tool": "search_player",
+  "arguments": {
+    "search_str": "Sadaharu Oh",
+    "sport_id": 31
+  }
+}
+```
+
+Then get their career stats:
+```json
+{
+  "tool": "get_player_stats",
+  "arguments": {
+    "person_id": "br_oh----000sad",
+    "stats": "batting",
+    "sport_id": 31
+  }
+}
+```
+
+#### Get NPB Stats for MLB Players
+Search for players who played in both leagues:
+```json
+{
+  "tool": "search_player",
+  "arguments": {
+    "search_str": "Ichiro Suzuki",
+    "sport_id": 31
   }
 }
 ```
