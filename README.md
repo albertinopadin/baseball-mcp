@@ -4,7 +4,7 @@ MCP (Model Context Protocol) Server for Major League Baseball and Minor League B
 
 ## Overview
 
-This MCP server provides comprehensive access to MLB and Minor League Baseball data through the official MLB Stats API. It allows you to search for players, teams, view schedules, check standings, and access game data across all levels of professional baseball including Triple-A, Double-A, High-A, Single-A, and Rookie leagues.
+This MCP server provides comprehensive access to MLB, Minor League Baseball, and Nippon Professional Baseball (NPB) data through official APIs and web scraping. It allows you to search for players, teams, view schedules, check standings, and access game data across all levels of professional baseball including Triple-A, Double-A, High-A, Single-A, Rookie leagues, and Japanese professional baseball.
 
 ## Features
 
@@ -47,6 +47,15 @@ This MCP server provides comprehensive access to MLB and Minor League Baseball d
   - Rookie (R)
 - Get available sports/leagues with their IDs
 - Access player stats, team rosters, and schedules for all minor league levels
+
+### NPB (Japanese Baseball) Support
+
+- **NEW: Nippon Professional Baseball integration** featuring:
+  - Player search across Central and Pacific leagues
+  - Team information for all 12 NPB teams
+  - Player statistics (traditional and advanced metrics)
+  - Japanese name search with romanization support
+  - Multi-source data aggregation for comprehensive coverage
 
 ## Installation
 
@@ -118,6 +127,7 @@ Search for baseball players by name (across all levels).
 **Parameters:**
 
 - `search_str` (string, required): Name of player to search for
+- `sport_id` (integer, optional): Sport ID (1 for MLB/MiLB, 31 for NPB)
 
 **Example:**
 
@@ -126,6 +136,18 @@ Search for baseball players by name (across all levels).
   "tool": "search_player",
   "arguments": {
     "search_str": "Jose Altuve"
+  }
+}
+```
+
+**NPB Example:**
+
+```json
+{
+  "tool": "search_player",
+  "arguments": {
+    "search_str": "Munetaka Murakami",
+    "sport_id": 31
   }
 }
 ```
@@ -154,11 +176,11 @@ Get detailed information about a specific MLB player.
 
 #### `get_player_stats`
 
-Get statistics for a specific player (MLB or Minor Leagues).
+Get statistics for a specific player (MLB, Minor Leagues, or NPB).
 
 **Parameters:**
 
-- `person_id` (integer, required): Unique Player Identifier
+- `person_id` (integer/string, required): Unique Player Identifier (int for MLB/MiLB, string for NPB)
 - `stats` (string, required): Type of statistics (e.g., 'season', 'career', 'yearByYear', 'gameLog')
 - `season` (string, optional): Season of play
 - `sport_id` (integer, optional): Sport ID - Use 1 for MLB (default), or:
@@ -167,6 +189,7 @@ Get statistics for a specific player (MLB or Minor Leagues).
   - 13: High-A (A+)
   - 14: Single-A (A)
   - 16: Rookie (R)
+  - 31: NPB (Nippon Professional Baseball)
 - `group` (string, optional): Stat group (e.g., 'hitting', 'pitching', 'fielding')
 
 **Example:**
@@ -185,12 +208,14 @@ Get statistics for a specific player (MLB or Minor Leagues).
 
 #### `search_teams`
 
-Search for baseball teams (MLB or Minor Leagues).
+Search for baseball teams (MLB, Minor Leagues, or NPB).
 
 **Parameters:**
 
 - `season` (string, optional): Season of play
-- `sport_id` (integer, optional): Sport ID - Use 1 for MLB (default), or minor league IDs (11-14, 16)
+- `sport_id` (integer, optional): Sport ID - Use 1 for MLB (default), or:
+  - 11-14, 16: Minor league IDs
+  - 31: NPB (returns all 12 teams)
 - `active_status` (string, optional): 'Y' for active, 'N' for inactive, 'B' for both (default: 'Y')
 - `league_id` (integer, optional): League ID (103 for AL, 104 for NL) - MLB only
 - `division_id` (integer, optional): Division ID
@@ -486,6 +511,42 @@ baseball-mcp/
 ### Minor League Examples
 
 ![Example of Jac Caglianone's minor league stats in 2025](examples/JacCaglianoneMinorsStats2025.png)
+
+### NPB Examples
+
+#### Get NPB Teams
+```json
+{
+  "tool": "search_teams",
+  "arguments": {
+    "sport_id": 31
+  }
+}
+```
+
+#### Search NPB Player
+```json
+{
+  "tool": "search_player",
+  "arguments": {
+    "search_str": "Murakami",
+    "sport_id": 31
+  }
+}
+```
+
+#### Get NPB Player Stats
+```json
+{
+  "tool": "get_player_stats",
+  "arguments": {
+    "person_id": "npb_munetaka_murakami_2024",
+    "stats": "batting",
+    "sport_id": 31,
+    "season": "2024"
+  }
+}
+```
 
 ## Caching
 

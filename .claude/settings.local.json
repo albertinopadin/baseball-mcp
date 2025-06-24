@@ -18,7 +18,9 @@
       "mcp__baseball-mcp__get_player_statcast_batting",
       "mcp__baseball-mcp__get_player_statcast_pitching",
       "WebFetch(domain:docs.anthropic.com)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(mkdir:*)",
+      "Bash(uv sync:*)"
     ],
     "deny": []
   }

@@ -2,13 +2,14 @@ from mcp.server.fastmcp import FastMCP
 import mlb_stats_api
 import statcast_api
 import sports_api
-from sports_constants import MLB, TRIPLE_A, DOUBLE_A, HIGH_A, SINGLE_A, ROOKIE
+import npb_api
+from sports_constants import MLB, TRIPLE_A, DOUBLE_A, HIGH_A, SINGLE_A, ROOKIE, NIPPON_PROFESSIONAL as NPB
 
 try:
     from importlib.metadata import version
     VERSION = version("baseball-mcp")
 except Exception:
-    VERSION = "0.0.7"  # Fallback version
+    VERSION = "0.0.8"  # Fallback version
 
 mcp = FastMCP("BaseballMcp")
 
@@ -31,15 +32,18 @@ async def get_available_sports() -> str:
 
 # MLB Stats API tools
 @mcp.tool()
-async def search_player(search_str: str) -> str:
-    """Search for baseball players across all leagues (MLB and Minor Leagues).
+async def search_player(search_str: str, sport_id: int = 1) -> str:
+    """Search for baseball players across all leagues (MLB, Minor Leagues, and NPB).
 
     Args:
         search_str: Name of player to search for
+        sport_id: Sport ID (1 for MLB/MiLB, 31 for NPB)
     
     Note: Returns players from all levels. Use get_player_stats with specific 
-    sport_id to get minor league statistics.
+    sport_id to get minor league or NPB statistics.
     """
+    if sport_id == NPB:
+        return await npb_api.search_npb_player(search_str)
     return await mlb_stats_api.search_player(search_str)
 
 
@@ -57,29 +61,40 @@ async def get_player(person_id: int, season: str | None = None, accent: bool = T
 
 @mcp.tool()
 async def get_player_stats(
-    person_id: int,
+    person_id: int | str,
     stats: str,
     season: str | None = None,
     sport_id: int = 1,
     group: str | None = None
 ) -> str:
-    """Get statistics for a specific player (MLB or Minor Leagues).
+    """Get statistics for a specific player (MLB, Minor Leagues, or NPB).
     
     Args:
-        person_id: Unique Player Identifier
+        person_id: Unique Player Identifier (int for MLB/MiLB, str for NPB)
         stats: Type of statistics (e.g., 'season', 'career', 'yearByYear', 'gameLog')
+               For NPB: 'batting' or 'pitching'
         season: Season of play (optional)
-        sport_id: Sport ID - Use 1 for MLB (default), or minor league IDs:
+        sport_id: Sport ID - Use 1 for MLB (default), minor league IDs, or:
                   - 11: Triple-A (AAA)
                   - 12: Double-A (AA)
                   - 13: High-A (A+)
                   - 14: Single-A (A)
                   - 16: Rookie (R)
-        group: Stat group (e.g., 'hitting', 'pitching', 'fielding')
+                  - 31: NPB (Nippon Professional Baseball)
+        group: Stat group (e.g., 'hitting', 'pitching', 'fielding') - MLB/MiLB only
     
     Note: For minor league stats, you must specify the exact sport_id for the level.
     Career stats only available for MLB (sport_id=1).
+    For NPB, use string player_id and stats should be 'batting' or 'pitching'.
     """
+    if sport_id == NPB:
+        if isinstance(person_id, int):
+            person_id = str(person_id)
+        # Map MLB stats types to NPB stats types
+        npb_stats_type = "batting" if group != "pitching" else "pitching"
+        if stats in ["batting", "pitching"]:
+            npb_stats_type = stats
+        return await npb_api.get_npb_player_stats(person_id, int(season) if season else None, npb_stats_type)
     return await mlb_stats_api.get_player_stats(person_id, stats, season, sport_id, group)
 
 
@@ -91,22 +106,26 @@ async def search_teams(
     league_id: int | None = None,
     division_id: int | None = None
 ) -> str:
-    """Search for baseball teams (MLB or Minor Leagues).
+    """Search for baseball teams (MLB, Minor Leagues, or NPB).
     
     Args:
         season: Season of play (optional)
-        sport_id: Sport ID - Use 1 for MLB (default), or minor league IDs:
+        sport_id: Sport ID - Use 1 for MLB (default), minor league IDs, or:
                   - 11: Triple-A (AAA) - 30 teams
                   - 12: Double-A (AA) - 30 teams
                   - 13: High-A (A+) - 30 teams
                   - 14: Single-A (A) - 30 teams
                   - 16: Rookie (R)
+                  - 31: NPB - 12 teams (6 Central, 6 Pacific)
         active_status: 'Y' for active, 'N' for inactive, 'B' for both
         league_id: League ID (optional) - Note: Minor leagues don't use AL/NL structure
         division_id: Division ID (optional)
     
     Example: To get all Triple-A teams, use sport_id=11
+    Example: To get NPB teams, use sport_id=31
     """
+    if sport_id == NPB:
+        return await npb_api.get_npb_teams(int(season) if season else None)
     return await mlb_stats_api.search_teams(season, sport_id, active_status, league_id, division_id)
 
 
