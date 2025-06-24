@@ -16,21 +16,7 @@ def _get_npb_aggregator():
     if npb_aggregator is None:
         # Import here to avoid circular imports
         from npb.aggregator import NPBDataAggregator
-        # Import sources to ensure registration
-        try:
-            from npb.sources import npb_official
-        except Exception as e:
-            print(f"Warning: Could not import npb_official source: {e}")
-        try:
-            from npb.sources import baseball_ref
-        except Exception as e:
-            print(f"Warning: Could not import baseball_ref source: {e}")
-        try:
-            from npb.sources import fangraphs
-        except Exception as e:
-            pass  # FanGraphs source may not be fully implemented
-        
-        # Let aggregator use all registered sources
+        # Sources are automatically registered when npb.sources is imported
         npb_aggregator = NPBDataAggregator()
     return npb_aggregator
 

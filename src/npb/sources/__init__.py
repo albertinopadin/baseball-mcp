@@ -17,3 +17,19 @@ def get_source(name: str):
 def list_sources():
     """List all registered data sources."""
     return list(_sources.keys())
+
+# Import sources to register them
+try:
+    from . import npb_official
+except Exception:
+    pass
+
+try:
+    from . import baseball_ref
+except Exception:
+    pass
+
+try:
+    from . import fangraphs
+except Exception:
+    pass
