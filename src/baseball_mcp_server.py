@@ -9,7 +9,7 @@ try:
     from importlib.metadata import version
     VERSION = version("baseball-mcp")
 except Exception:
-    VERSION = "0.0.8"  # Fallback version
+    VERSION = "0.0.10"  # Fallback version
 
 mcp = FastMCP("BaseballMcp")
 

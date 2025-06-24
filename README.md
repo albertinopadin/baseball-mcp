@@ -55,6 +55,7 @@ This MCP server provides comprehensive access to MLB, Minor League Baseball, and
   - Team information for all 12 NPB teams
   - Player statistics (traditional and advanced metrics)
   - Japanese name search with romanization support
+  - **Smart player selection**: Automatically finds the correct player with NPB stats
   - Multi-source data aggregation:
     - **Baseball Reference**: Historical data (1936-present) for all NPB players
     - **NPB Official**: Current rosters and recent stats (2008-present)

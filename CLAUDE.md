@@ -212,6 +212,10 @@ Use `get_available_sports()` to see all available leagues and their IDs.
 - Run example test scripts in `test/` directory
 
 ## Version History
+- v0.0.10: Improved NPB player search with smart selection
+  - Automatically selects players with NPB stats when multiple matches exist
+  - Handles MLB players who also played in NPB (e.g., Alex Cabrera)
+  - Concurrent stat checking for better performance
 - v0.0.9: Added Baseball Reference integration for historical NPB data (1936-present)
   - Successfully tested with Ichiro Suzuki, Sadaharu Oh, Shohei Ohtani, Tetsuto Yamada
   - Implemented smart search handling for MLB/NPB crossover players

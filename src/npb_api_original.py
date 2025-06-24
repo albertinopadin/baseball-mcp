@@ -1,10 +1,9 @@
-"""Improved NPB API interface for MCP server integration with smart player selection."""
+"""NPB API interface for MCP server integration."""
 
 from typing import List, Optional
 from npb.sources import get_source
 from npb.models import NPBPlayer, NPBPlayerStats, NPBTeam, NPBLeague
 from data_utils import get_with_default
-import asyncio
 
 
 # Initialize NPB data aggregator
@@ -123,19 +122,14 @@ def format_npb_team(team: NPBTeam) -> str:
     Source: {team.source}"""
 
 
-async def search_npb_player_with_smart_selection(name: str) -> str:
-    """Search for NPB players by name with intelligent selection.
-    
-    When multiple players match:
-    1. If only one has NPB stats, return that one
-    2. If multiple have NPB stats, ask user to choose
-    3. If none have NPB stats, return search results with note
+async def search_npb_player(name: str) -> str:
+    """Search for NPB players by name.
     
     Args:
         name: Player name to search for
         
     Returns:
-        Formatted player search results or single player info
+        Formatted player search results
     """
     try:
         aggregator = _get_npb_aggregator()
@@ -144,115 +138,18 @@ async def search_npb_player_with_smart_selection(name: str) -> str:
         if not players:
             return f"No NPB players found matching '{name}'"
         
-        # Single result - return it
-        if len(players) == 1:
-            return format_npb_player(players[0])
-        
-        # Multiple results - check which ones have NPB stats
-        print(f"Found {len(players)} players matching '{name}', checking for NPB stats...")
-        
-        # Create tasks to check stats for all players concurrently
-        async def check_player_has_npb_stats(player: NPBPlayer) -> tuple[NPBPlayer, bool]:
-            """Check if a player has NPB stats."""
-            try:
-                # Try to get batting stats first (most common)
-                stats = await aggregator.get_player_stats(player.id, None, "batting")
-                if stats and stats.games and stats.games > 0:
-                    return (player, True)
-                
-                # If no batting stats, try pitching
-                stats = await aggregator.get_player_stats(player.id, None, "pitching")
-                if stats and stats.games and stats.games > 0:
-                    return (player, True)
-                
-                return (player, False)
-            except Exception:
-                # If there's an error getting stats, assume no stats
-                return (player, False)
-        
-        # Check all players concurrently
-        tasks = [check_player_has_npb_stats(player) for player in players]
-        results = await asyncio.gather(*tasks)
-        
-        # Separate players with and without NPB stats
-        players_with_stats = [player for player, has_stats in results if has_stats]
-        players_without_stats = [player for player, has_stats in results if not has_stats]
-        
-        # For MLB players, we need to check their register pages
-        # MLB player IDs need to be converted to find their register page
-        if not players_with_stats:
-            # Check MLB players for NPB stats by constructing register IDs
-            mlb_players_to_check = []
-            for player in players_without_stats:
-                if player.id.startswith("br_mlb_"):
-                    # Try common register ID patterns for MLB players
-                    mlb_id = player.id[7:]  # Remove "br_mlb_" prefix
-                    
-                    # Common patterns: first 6 letters of last name + first 2 of first + number
-                    # For Alex Cabrera, this would be cabrer + al = cabreal
-                    if "cabrera" in player.name_english.lower() and "alex" in player.name_english.lower():
-                        # Try the known pattern for Alex Cabrera
-                        register_player = NPBPlayer(
-                            id="br_cabrer001ale",
-                            name_english=player.name_english,
-                            source="baseball_reference",
-                            source_id="cabrer001ale"
-                        )
-                        register_player.disambiguation_info = "MLB/NPB player"
-                        mlb_players_to_check.append(register_player)
-            
-            # Check these additional candidates
-            if mlb_players_to_check:
-                additional_tasks = [check_player_has_npb_stats(p) for p in mlb_players_to_check]
-                additional_results = await asyncio.gather(*additional_tasks)
-                
-                for player, has_stats in additional_results:
-                    if has_stats:
-                        players_with_stats.append(player)
-                        print(f"Found NPB stats for {player.name_english} via register page (ID: {player.id})")
-        
-        # If only one player has NPB stats, return that one
-        if len(players_with_stats) == 1:
-            player = players_with_stats[0]
-            print(f"Auto-selected {player.name_english} (ID: {player.id}) - only player with NPB stats")
-            return format_npb_player(player)
-        
-        # If multiple players have NPB stats, show them first
-        if len(players_with_stats) > 1:
-            result = f"Found {len(players_with_stats)} players with NPB stats matching '{name}':\n\n"
-            result += "Players with NPB stats:\n"
-            result += "\n---\n".join([format_npb_player(player) for player in players_with_stats])
-            
-            if players_without_stats:
-                result += f"\n\nAlso found {len(players_without_stats)} players without NPB stats."
-            
-            result += "\n\nPlease specify which player you want by using their ID."
+        # Check if we have multiple results
+        if len(players) > 1:
+            result = f"Found {len(players)} players matching '{name}':\n\n"
+            result += "Please specify which player you want by using their ID:\n"
+            result += "\n---\n".join([format_npb_player(player) for player in players])
             return result
-        
-        # No players have NPB stats - show all results
-        result = f"Found {len(players)} players matching '{name}', but none have NPB stats:\n\n"
-        result += "\n---\n".join([format_npb_player(player) for player in players])
-        result += "\n\nThese players may have played in other leagues. Please specify which player you want by using their ID."
-        return result
+        else:
+            # Single result
+            return format_npb_player(players[0])
         
     except Exception as e:
         return f"Error searching for NPB player '{name}': {str(e)}"
-
-
-# Keep the original function name for compatibility but use the improved version
-async def search_npb_player(name: str) -> str:
-    """Search for NPB players by name.
-    
-    This is the improved version that automatically selects players with NPB stats
-    when there are multiple matches.
-    
-    Args:
-        name: Player name to search for
-        
-    Returns:
-        Formatted player search results
-    """
-    return await search_npb_player_with_smart_selection(name)
 
 
 async def get_npb_player_stats(
