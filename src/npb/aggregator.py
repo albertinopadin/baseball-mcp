@@ -41,8 +41,10 @@ class NPBDataAggregator:
         
         # Default source priorities
         self.source_priorities = {
-            'player_search': ['npb_official', 'fangraphs'],
-            'player_stats': ['fangraphs', 'npb_official'],  # FanGraphs for advanced
+            'player_search': ['baseball_reference', 'npb_official', 'fangraphs'],
+            'player_stats': ['baseball_reference', 'npb_official', 'fangraphs'],
+            'player_stats_current': ['npb_official', 'fangraphs', 'baseball_reference'],
+            'player_stats_historical': ['baseball_reference'],
             'teams': ['npb_official'],
             'team_roster': ['npb_official']
         }

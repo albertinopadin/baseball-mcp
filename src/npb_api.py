@@ -16,10 +16,17 @@ def _get_npb_aggregator():
         # Import here to avoid circular imports
         from npb.aggregator import NPBDataAggregator
         # Import sources to ensure registration
-        from npb.sources import npb_official
+        try:
+            from npb.sources import npb_official
+        except Exception as e:
+            print(f"Warning: Could not import npb_official source: {e}")
+        try:
+            from npb.sources import baseball_ref
+        except Exception as e:
+            print(f"Warning: Could not import baseball_ref source: {e}")
         try:
             from npb.sources import fangraphs
-        except:
+        except Exception as e:
             pass  # FanGraphs source may not be fully implemented
         
         # Let aggregator use all registered sources
@@ -33,10 +40,17 @@ def format_npb_player(player: NPBPlayer) -> str:
     if player.team:
         team_info = f"\n    Team: {player.team.name_english} ({player.team.league.value if player.team.league else 'Unknown'})"
     
+    # Add disambiguation info if available
+    disambiguation = ""
+    if hasattr(player, 'disambiguation_info') and player.disambiguation_info:
+        disambiguation = f"\n    Info: {player.disambiguation_info}"
+    elif hasattr(player, 'years_active') and player.years_active:
+        disambiguation = f"\n    Years Active: {player.years_active}"
+    
     return f"""NPB Player Information:
     ID: {player.id}
     Name: {player.name_english}
-    {f'Name (Japanese): {player.name_japanese}' if player.name_japanese else ''}{team_info}
+    {f'Name (Japanese): {player.name_japanese}' if player.name_japanese else ''}{team_info}{disambiguation}
     {f'Jersey Number: {player.jersey_number}' if player.jersey_number else ''}
     {f'Position: {player.position}' if player.position else ''}
     
@@ -124,8 +138,15 @@ async def search_npb_player(name: str) -> str:
         if not players:
             return f"No NPB players found matching '{name}'"
         
-        results = [format_npb_player(player) for player in players]
-        return "\n---\n".join(results)
+        # Check if we have multiple results
+        if len(players) > 1:
+            result = f"Found {len(players)} players matching '{name}':\n\n"
+            result += "Please specify which player you want by using their ID:\n"
+            result += "\n---\n".join([format_npb_player(player) for player in players])
+            return result
+        else:
+            # Single result
+            return format_npb_player(players[0])
         
     except Exception as e:
         return f"Error searching for NPB player '{name}': {str(e)}"

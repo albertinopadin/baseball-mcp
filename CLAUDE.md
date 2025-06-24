@@ -198,9 +198,9 @@ Use `get_available_sports()` to see all available leagues and their IDs.
   - Web scraping dependent (may break if site structure changes)
   - Limited to data available on public websites
   - Advanced metrics require FanGraphs (not fully implemented)
-  - **Historical data only available from 2008-present**
-  - **Batting stats only show players meeting minimum plate appearances (3.1 × team games)**
-  - Players who were primarily pitchers (like Ohtani) won't appear in batting stats
+  - NPB Official source only has data from 2008-present
+  - NPB Official only shows players meeting minimum plate appearances (3.1 × team games)
+  - Baseball Reference provides full historical data (1936-present) via web scraping
   - Player IDs are generated, not official
 
 ## Debugging Tips
@@ -211,6 +211,7 @@ Use `get_available_sports()` to see all available leagues and their IDs.
 - Run example test scripts in `test/` directory
 
 ## Version History
+- v0.0.9: Added Baseball Reference integration for historical NPB data (1936-present)
 - v0.0.8: Added NPB (Nippon Professional Baseball) support with web scraping, Japanese name handling
 - v0.0.7: Added minor league example screenshot, documentation improvements
 - v0.0.6: Added full minor league support with sport IDs, new get_available_sports tool

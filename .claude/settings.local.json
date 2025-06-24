@@ -20,7 +20,8 @@
       "WebFetch(domain:docs.anthropic.com)",
       "Bash(grep:*)",
       "Bash(mkdir:*)",
-      "Bash(uv sync:*)"
+      "Bash(uv sync:*)",
+      "Bash(ls:*)"
     ],
     "deny": []
   }

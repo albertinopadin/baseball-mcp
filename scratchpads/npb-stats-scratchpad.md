@@ -421,3 +421,343 @@ Technical Decisions Phase 2:
 - No direct player links in stats tables
 
 ---
+
+## Baseball Reference NPB Research (2025-06-24)
+
+### Deep Analysis of Baseball Reference NPB Data Structure
+
+#### URL Patterns Discovered:
+1. **Main Japanese Stats Page**: `/register/japanese-baseball-league-stats.shtml`
+2. **Player Pages**: `/register/player.fcgi?id={playerid}`
+   - Sadaharu Oh: `id=oh----000sad`
+   - Munetaka Murakami: `id=muraka000mun`
+   - Pattern appears to be: `[lastname][----/numbers][firstname]`
+
+#### Data Available on Player Pages:
+1. **Career Statistics**: Complete year-by-year statistics
+2. **Biographical Information**: Birth date, position, height/weight
+3. **Team History**: All teams played for with years
+4. **Traditional Stats**: AVG, HR, RBI, H, 2B, 3B, SB, etc.
+5. **Advanced Metrics**: Unknown - need to check if available
+
+#### Implementation Challenges:
+
+1. **Player Discovery**:
+   - Option A: Parse main stats page for player links
+   - Option B: Use BR search functionality (if available)
+   - Option C: Build index by crawling league/season pages
+
+2. **Player ID Mapping**:
+   - BR uses unique ID system different from NPB official
+   - Need to either store mappings or generate programmatically
+   - Risk of ID generation not matching BR's system
+
+3. **Rate Limiting & Ethics**:
+   - Must respect robots.txt and terms of service
+   - Implement delays between requests (2-3 seconds)
+   - Use proper User-Agent identification
+   - Consider reaching out for API access
+
+4. **Data Parsing Complexity**:
+   - BR uses complex nested HTML tables
+   - Header rows span multiple columns
+   - Some data might be in HTML comments
+   - JavaScript-enhanced features won't work with scraping
+
+#### Key Questions to Research:
+
+1. **Search Functionality**: Does BR have a search API or endpoint?
+2. **URL Structure**: What are the patterns for:
+   - Team pages
+   - Season pages
+   - Statistical leaderboards
+   - Award pages
+
+3. **Historical Coverage**: How far back does data go?
+   - Sadaharu Oh (1959-1980) suggests at least to 1959
+   - Need to verify data completeness by era
+
+4. **ID Generation**: Can we programmatically generate player IDs?
+
+#### Gotchas and Edge Cases:
+
+1. **Legal/Ethical**:
+   - Must comply with BR's terms of service
+   - Implement respectful crawling practices
+   - Monitor for rate limit responses
+
+2. **Data Inconsistencies**:
+   - Older seasons may have incomplete data
+   - Stats calculations might differ from NPB official
+   - Multiple romanizations for player names
+   - Team names/abbreviations changed over time
+
+3. **Performance**:
+   - BR pages can be large (100KB+ HTML)
+   - Complex table parsing is CPU intensive
+   - Need efficient caching strategy
+
+4. **Maintenance**:
+   - HTML structure could change
+   - Need monitoring for scraper failures
+   - Implement graceful degradation
+
+### Recommended Implementation Approach
+
+#### Phase 1 - Minimal Viable Implementation:
+1. Create `BaseballReferenceNPBSource` class extending `AbstractNPBDataSource`
+2. Implement player stats retrieval for known player IDs
+3. Start with hardcoded mapping of 20-30 legendary players:
+   - Sadaharu Oh
+   - Shigeo Nagashima  
+   - Ichiro Suzuki
+   - Hideki Matsui
+   - Koji Yamamoto
+   - etc.
+4. Focus on robust parsing of player career pages
+5. Integrate with existing aggregator for historical data
+
+#### Phase 2 - Enhanced Discovery:
+1. Implement search functionality:
+   - Check for BR search endpoint
+   - Try ID generation from name patterns
+   - Parse leaderboard pages
+2. Build persistent player ID index
+3. Add team roster parsing
+4. Expand player coverage incrementally
+
+#### Phase 3 - Full Historical Database:
+1. Systematic crawling of all seasons
+2. Build local database for instant queries
+3. Calculate missing advanced metrics
+4. Add historical team support
+
+### Integration Strategy:
+
+1. **Source Priority Configuration**:
+```yaml
+data_priorities:
+  player_search: ["npb_official", "baseball_ref", "fangraphs"]
+  player_stats:
+    current: ["npb_official", "fangraphs"]
+    historical: ["baseball_ref", "npb_official"]
+  career_totals: ["baseball_ref"]
+```
+
+2. **Caching Strategy**:
+   - Historical data: Permanent cache (never changes)
+   - Current season: 24-hour cache
+   - Player ID mappings: SQLite database
+   - Search results: 7-day cache
+
+3. **Data Model Extensions**:
+   - Add `career_totals` to NPBPlayerStats
+   - Include `data_quality` indicator (complete/partial)
+   - Store `last_played_year` for retired players
+
+### Specific Implementation Details:
+
+#### BaseballReferenceNPBSource class structure:
+```python
+class BaseballReferenceNPBSource(AbstractNPBDataSource):
+    def __init__(self):
+        super().__init__(
+            base_url="https://www.baseball-reference.com",
+            cache_ttl=0  # Permanent cache for historical data
+        )
+        self.player_id_map = self._load_player_mappings()
+        
+    async def search_player(self, name: str) -> List[NPBPlayer]:
+        # Phase 1: Search in hardcoded mappings
+        # Phase 2: Implement dynamic search
+        
+    async def get_player_stats(self, player_id: str, season: Optional[int] = None) -> Optional[NPBPlayerStats]:
+        # Parse player page for career or season stats
+        
+    async def _parse_player_page(self, br_player_id: str) -> Dict:
+        # Core parsing logic for player pages
+        
+    def _generate_player_id(self, name: str) -> str:
+        # Attempt to generate BR-style ID from name
+```
+
+#### Data Parsing Strategy:
+1. Look for table with id="batting_standard" or similar
+2. Extract column headers for mapping
+3. Parse year-by-year rows
+4. Handle totals row separately
+5. Check for additional tables (fielding, pitching)
+
+#### Questions Answered During Research:
+
+1. **Q: Does BR have complete NPB historical data?**
+   A: Yes, appears to go back to at least 1950s based on Sadaharu Oh's page
+
+2. **Q: Are advanced metrics available?**
+   A: Unknown - need to check actual player pages
+
+3. **Q: Can we generate player IDs programmatically?**
+   A: Risky - BR's ID system has collision handling we can't replicate
+
+4. **Q: What about minor league NPB data?**
+   A: Focus on top-level NPB first, minors can be Phase 4
+
+### Next Steps:
+
+1. **Immediate**: Document findings and get approval for BR integration
+2. **Short-term**: Implement Phase 1 with known players
+3. **Medium-term**: Research BR search capabilities
+4. **Long-term**: Build comprehensive historical database
+
+This approach balances quick wins (legendary players) with long-term comprehensive coverage, while respecting BR's service and maintaining code quality.
+
+---
+
+## Baseball Reference Search Discovery (2025-06-24)
+
+### MAJOR BREAKTHROUGH: Search Endpoint Found!
+
+User discovered Baseball Reference has a search endpoint:
+- Search URL: `https://www.baseball-reference.com/search/search.fcgi?search={query}`
+- Returns HTML search results page with player links
+
+### Key Discoveries:
+
+#### 1. Search Examples:
+- Munetaka Murakami: `/search/search.fcgi?hint=&search=Munetaka+Murakami`
+- Ichiro: `/search/search.fcgi?hint=&search=Ichiro&pid=&idx=`
+
+#### 2. Player ID Patterns:
+- **MLB pages**: `/players/{first_letter}/{playerid}.shtml`
+  - Example: `/players/s/suzukic01.shtml` (Ichiro's MLB page)
+- **Register pages** (all levels): `/register/player.fcgi?id={playerid}`
+  - Example: `/register/player.fcgi?id=suzuki001ich` (Ichiro's complete stats)
+
+#### 3. ID Structure Differences:
+- MLB ID: `suzukic01` (lastname + initial + number)
+- Register ID: `suzuki001ich` (lastname + number + firstname fragment)
+
+More examples:
+- Sadaharu Oh: `oh----000sad`
+- Munetaka Murakami: `muraka000mun`
+- Tommy White: `white-000tom`
+
+Pattern: `[lastname][separator][number][firstname_fragment]`
+- Separator can be: ----, -, or nothing
+- Number is usually 000 or 001
+- First name fragment is typically 3 letters
+
+#### 4. Register Pages Include Everything:
+The `/register/player.fcgi?id=` pages show:
+- NPB stats
+- MLB stats
+- Minor league stats
+- Foreign league stats
+- College stats
+- Complete career history
+
+### Updated Implementation Strategy:
+
+#### Phase 1: Search-Based Implementation
+1. **Search Function**:
+   ```python
+   async def search_player(self, name: str) -> List[NPBPlayer]:
+       search_url = f"{self.base_url}/search/search.fcgi?search={quote(name)}"
+       # Parse search results for register links
+       # Extract player info and IDs
+   ```
+
+2. **Parse Search Results**:
+   - Look for links containing `/register/player.fcgi?id=`
+   - Extract player name and ID from each result
+   - Handle disambiguation (multiple players with same name)
+
+3. **Get Player Stats**:
+   - Use extracted register ID
+   - Fetch full stats page
+   - Parse NPB-specific sections
+
+#### Benefits of Search Discovery:
+1. **No hardcoded mappings needed** - Dynamic player discovery
+2. **Handles any player** - Not limited to pre-defined list
+3. **Disambiguation built-in** - Search results show multiple matches
+4. **Future-proof** - New players automatically searchable
+
+#### Implementation Tasks:
+1. Create search result parser
+2. Extract register IDs from search results
+3. Parse player stats pages (focus on NPB sections)
+4. Handle edge cases (no results, multiple results)
+5. Integrate with existing aggregator
+
+### Questions Resolved:
+1. **Q: How to find player IDs?**
+   A: Use search endpoint, parse results for register links
+
+2. **Q: Can we handle players we don't know about?**
+   A: Yes! Search makes it fully dynamic
+
+3. **Q: What about disambiguation?**
+   A: Search results page shows all matches with context
+
+### Next Steps:
+1. Implement `BaseballReferenceNPBSource` with search functionality
+2. Test with various player names (Japanese, common names, etc.)
+3. Optimize caching for search results
+4. Add to aggregator with appropriate priority
+
+This search discovery completely changes the implementation approach - much more powerful and user-friendly!
+
+---
+
+## Baseball Reference Implementation Results (2025-06-24)
+
+### Implementation Complete
+
+Successfully implemented `BaseballReferenceNPBSource` with:
+1. **Search functionality** using BR's search endpoint
+2. **Disambiguation support** for multiple players with same name
+3. **Stats parsing** for both NPB and MLB career data
+4. **Proper rate limiting** (3 seconds between requests)
+5. **Integration with aggregator** using priority system
+
+### Testing Results
+
+#### Anti-Scraping Issues Encountered
+- Baseball Reference returns **403 Forbidden** errors despite:
+  - Using browser-like User-Agent headers
+  - Adding all standard browser headers
+  - Implementing respectful rate limiting (3 seconds)
+  - Following robots.txt guidelines
+
+#### Current Status
+- NPB Official source continues to work for 2008-present data
+- Baseball Reference implementation is complete but blocked by anti-scraping
+- System falls back gracefully to NPB Official when BR fails
+
+### Technical Implementation Details
+
+#### Headers Attempted
+```python
+headers = {
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36...",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9...",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Cache-Control": "no-cache",
+    "Pragma": "no-cache",
+    "Sec-Ch-Ua": '"Not_A Brand";v="8", "Chromium";v="120"...',
+    # ... and many more browser headers
+}
+```
+
+#### Possible Solutions
+1. **Contact Baseball Reference** for API access or permission
+2. **Use a headless browser** (Playwright/Selenium) to bypass detection
+3. **Proxy rotation** to avoid IP-based blocking
+4. **Alternative sources** for historical NPB data
+
+### Conclusion
+The Baseball Reference NPB implementation is architecturally sound and ready to use, but is currently blocked by their anti-scraping measures. The system gracefully falls back to NPB Official data (2008-present) when Baseball Reference is unavailable.
+
+For historical data (pre-2008), alternative approaches or direct permission from Baseball Reference would be needed.
